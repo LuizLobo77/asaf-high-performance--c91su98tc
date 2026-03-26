@@ -29,20 +29,54 @@ const formatCNPJ = (value: string) => {
 type ImportError = { line: number; message: string }
 type ImportReport = { total: number; success: number; failed: number; errors: ImportError[] }
 
-function parseCSVLine(text: string, separator: string = ',') {
-  const result = []
-  let current = ''
+function parseCSV(text: string, separator: string = ','): string[][] {
+  const result: string[][] = []
+  let currentRow: string[] = []
+  let currentCell = ''
   let inQuotes = false
+
   for (let i = 0; i < text.length; i++) {
     const char = text[i]
-    if (char === '"') inQuotes = !inQuotes
-    else if (char === separator && !inQuotes) {
-      result.push(current)
-      current = ''
-    } else current += char
+    const nextChar = text[i + 1]
+
+    if (inQuotes) {
+      if (char === '"' && nextChar === '"') {
+        currentCell += '"'
+        i++ // Skip escaped quote
+      } else if (char === '"') {
+        inQuotes = false
+      } else {
+        currentCell += char
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true
+      } else if (char === separator) {
+        currentRow.push(currentCell.trim())
+        currentCell = ''
+      } else if (char === '\r' && nextChar === '\n') {
+        currentRow.push(currentCell.trim())
+        if (currentRow.some((c) => c !== '')) result.push(currentRow)
+        currentRow = []
+        currentCell = ''
+        i++ // Skip \n
+      } else if (char === '\n' || char === '\r') {
+        currentRow.push(currentCell.trim())
+        if (currentRow.some((c) => c !== '')) result.push(currentRow)
+        currentRow = []
+        currentCell = ''
+      } else {
+        currentCell += char
+      }
+    }
   }
-  result.push(current)
-  return result.map((s) => s.trim().replace(/^"|"$/g, ''))
+
+  if (currentCell !== '' || currentRow.length > 0) {
+    currentRow.push(currentCell.trim())
+    if (currentRow.some((c) => c !== '')) result.push(currentRow)
+  }
+
+  return result
 }
 
 export default function ClientImport() {
@@ -54,10 +88,19 @@ export default function ClientImport() {
   const [isReportOpen, setIsReportOpen] = useState(false)
 
   const processFile = async (file: File) => {
-    if (!file.name.match(/\.(csv|xlsx)$/i)) {
+    if (file.name.match(/\.(xlsx|xls)$/i)) {
+      return toast({
+        title: 'Formato Incorreto',
+        description:
+          'Arquivos Excel não são suportados. Salve como "CSV (UTF-8)" e tente novamente.',
+        variant: 'destructive',
+      })
+    }
+
+    if (!file.name.match(/\.csv$/i)) {
       return toast({
         title: 'Erro',
-        description: 'Envie apenas arquivos .csv ou .xlsx.',
+        description: 'Envie apenas arquivos .csv.',
         variant: 'destructive',
       })
     }
@@ -76,30 +119,32 @@ export default function ClientImport() {
 
     try {
       const text = await file.text()
-      const lines = text
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter((l) => l.length > 0)
+      // Auto-detect separator
+      const sample = text.slice(0, 1000)
+      const separator =
+        (sample.match(/;/g)?.length || 0) > (sample.match(/,/g)?.length || 0) ? ';' : ','
 
-      if (lines.length < 2) throw new Error('Arquivo vazio ou sem registros válidos.')
+      const rows = parseCSV(text, separator)
 
-      const separator = lines[0].includes(';') ? ';' : ','
+      if (rows.length < 2) throw new Error('Arquivo vazio ou sem registros válidos.')
+
       const errors: ImportError[] = []
       const validClients: Client[] = []
       const existingCnpjs = new Set(clients.map((c) => c.cnpj?.replace(/\D/g, '')).filter(Boolean))
       const fileCnpjs = new Set<string>()
 
-      let totalLido = 0
+      let totalLido = rows.length - 1 // Exclude header
 
-      lines.slice(1).forEach((line, i) => {
-        const lineNum = i + 2 // line 1 is header
-        const cols = parseCSVLine(line, separator)
-        const name = cols[0]
+      rows.slice(1).forEach((cols, i) => {
+        const lineNum = i + 2
+        const name = cols[0] || ''
         const cnpjRaw = cols[1] || ''
         const city = cols[2] || ''
 
-        if (!name && !cnpjRaw && !city) return
-        totalLido++
+        if (!name && !cnpjRaw && !city) {
+          totalLido-- // Adjust for empty trailing rows
+          return
+        }
 
         if (!name) {
           return errors.push({
@@ -113,10 +158,15 @@ export default function ClientImport() {
           return errors.push({ line: lineNum, message: 'CNPJ é obrigatório' })
         }
 
+        // Fix for Excel dropping leading zeros on CNPJs
+        if (cnpjStr.length > 0 && cnpjStr.length < 14) {
+          cnpjStr = cnpjStr.padStart(14, '0')
+        }
+
         if (cnpjStr.length !== 14) {
           return errors.push({
             line: lineNum,
-            message: 'Formato de CNPJ inválido (deve conter 14 dígitos)',
+            message: `Formato de CNPJ inválido (${cnpjStr})`,
           })
         }
 
@@ -141,7 +191,7 @@ export default function ClientImport() {
         })
       })
 
-      // Optimized Batch Processing (Chunking)
+      // Optimized Sequential Batch Processing (Chunking) to handle 1000+ records safely
       const batches = []
       for (let i = 0; i < validClients.length; i += 100) {
         batches.push(validClients.slice(i, i + 100))
@@ -149,7 +199,7 @@ export default function ClientImport() {
 
       let importedCount = 0
       for (let i = 0; i < batches.length; i++) {
-        await new Promise((res) => setTimeout(res, 200)) // ensure sequential delay
+        await new Promise((res) => setTimeout(res, 250)) // Wait before processing next batch
         importClients(batches[i])
         importedCount += batches[i].length
         setProgress(Math.round(((i + 1) / batches.length) * 100))
@@ -171,7 +221,8 @@ export default function ClientImport() {
   }
 
   const downloadTemplate = () => {
-    const blob = new Blob(['Razao_Social,CNPJ,Cidade\n'], { type: 'text/csv;charset=utf-8;' })
+    const bom = new Uint8Array([0xef, 0xbb, 0xbf])
+    const blob = new Blob([bom, 'Razao_Social,CNPJ,Cidade\n'], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
     link.download = 'template_clientes.csv'
@@ -224,7 +275,7 @@ export default function ClientImport() {
                   Arraste sua planilha aqui
                 </h3>
                 <p className="text-sm text-[#6B7280] mb-4 text-center">
-                  ou clique para procurar no computador (.csv, .xlsx)
+                  ou clique para procurar no computador (.csv)
                 </p>
                 <Button variant="outline" className="pointer-events-none">
                   Selecionar Arquivo
@@ -235,7 +286,7 @@ export default function ClientImport() {
               type="file"
               id="csv-upload-client"
               className="hidden"
-              accept=".csv,.xlsx"
+              accept=".csv"
               disabled={isImporting}
               onChange={(e) => {
                 if (e.target.files?.[0]) processFile(e.target.files[0])

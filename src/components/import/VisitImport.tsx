@@ -6,20 +6,54 @@ import { toast } from '@/hooks/use-toast'
 import useAppStore from '@/stores/useAppStore'
 import { VisitResult, Visit } from '@/lib/types'
 
-function parseCSVLine(text: string, separator: string = ',') {
-  const result = []
-  let current = ''
+function parseCSV(text: string, separator: string = ','): string[][] {
+  const result: string[][] = []
+  let currentRow: string[] = []
+  let currentCell = ''
   let inQuotes = false
+
   for (let i = 0; i < text.length; i++) {
     const char = text[i]
-    if (char === '"') inQuotes = !inQuotes
-    else if (char === separator && !inQuotes) {
-      result.push(current)
-      current = ''
-    } else current += char
+    const nextChar = text[i + 1]
+
+    if (inQuotes) {
+      if (char === '"' && nextChar === '"') {
+        currentCell += '"'
+        i++
+      } else if (char === '"') {
+        inQuotes = false
+      } else {
+        currentCell += char
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true
+      } else if (char === separator) {
+        currentRow.push(currentCell.trim())
+        currentCell = ''
+      } else if (char === '\r' && nextChar === '\n') {
+        currentRow.push(currentCell.trim())
+        if (currentRow.some((c) => c !== '')) result.push(currentRow)
+        currentRow = []
+        currentCell = ''
+        i++
+      } else if (char === '\n' || char === '\r') {
+        currentRow.push(currentCell.trim())
+        if (currentRow.some((c) => c !== '')) result.push(currentRow)
+        currentRow = []
+        currentCell = ''
+      } else {
+        currentCell += char
+      }
+    }
   }
-  result.push(current)
-  return result.map((s) => s.trim().replace(/^"|"$/g, ''))
+
+  if (currentCell !== '' || currentRow.length > 0) {
+    currentRow.push(currentCell.trim())
+    if (currentRow.some((c) => c !== '')) result.push(currentRow)
+  }
+
+  return result
 }
 
 export default function VisitImport() {
@@ -27,6 +61,16 @@ export default function VisitImport() {
   const [isDragging, setIsDragging] = useState(false)
 
   const processFile = (file: File) => {
+    if (file.name.match(/\.(xlsx|xls)$/i)) {
+      toast({
+        title: 'Formato Incorreto',
+        description:
+          'Arquivos Excel não são suportados. Salve como "CSV (UTF-8)" e tente novamente.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     if (!file.name.endsWith('.csv')) {
       toast({
         title: 'Erro',
@@ -49,14 +93,18 @@ export default function VisitImport() {
     reader.onload = (e) => {
       try {
         const text = e.target?.result as string
-        const lines = text.split(/\r?\n/).filter((l) => l.trim())
-        if (lines.length < 2) throw new Error('Arquivo vazio ou sem dados.')
+        const sample = text.slice(0, 1000)
+        const separator =
+          (sample.match(/;/g)?.length || 0) > (sample.match(/,/g)?.length || 0) ? ';' : ','
 
-        const separator = lines[0].includes(';') ? ';' : ','
+        const rows = parseCSV(text, separator)
+        if (rows.length < 2) throw new Error('Arquivo vazio ou sem dados.')
+
         const groupedVisits: Record<string, Visit> = {}
 
-        lines.slice(1).forEach((line, i) => {
-          const cols = parseCSVLine(line, separator)
+        rows.slice(1).forEach((cols, i) => {
+          if (cols.length === 0 || (!cols[0] && !cols[1] && !cols[2])) return
+
           const date = cols[0]
           const sellerId = cols[1]
           const clientId = cols[2]
@@ -96,7 +144,7 @@ export default function VisitImport() {
       } catch (err) {
         toast({
           title: 'Erro na importação',
-          description: 'O formato do arquivo é inválido.',
+          description: 'O formato do arquivo é inválido ou incompatível.',
           variant: 'destructive',
         })
       }
@@ -138,7 +186,7 @@ export default function VisitImport() {
             Arraste seu arquivo CSV aqui
           </h3>
           <p className="text-sm text-[#6B7280] mb-4 text-center">
-            ou clique para procurar no seu computador
+            ou clique para procurar no seu computador (.csv)
           </p>
           <Button variant="outline" className="pointer-events-none">
             Selecionar Arquivo
