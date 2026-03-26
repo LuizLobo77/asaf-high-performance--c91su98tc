@@ -19,21 +19,33 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  useSidebar,
 } from '@/components/ui/sidebar'
 import useAppStore from '@/stores/useAppStore'
 
 export function AppSidebar() {
   const location = useLocation()
   const { currentUser, logoUrl } = useAppStore()
+  const { setOpenMobile, isMobile } = useSidebar()
 
   if (!currentUser) return null
 
   const isManager = currentUser.role === 'gestor'
 
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false)
+    }
+  }
+
   return (
     <Sidebar className="border-r border-border">
       <SidebarHeader className="p-6">
-        <Link to="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
+        <Link
+          to="/"
+          onClick={handleNavClick}
+          className="flex items-center gap-3 transition-opacity hover:opacity-80"
+        >
           {logoUrl ? (
             <img
               src={logoUrl}
@@ -52,14 +64,14 @@ export function AppSidebar() {
         <SidebarMenu className="gap-2">
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={location.pathname === '/'}>
-              <Link to="/">
+              <Link to="/" onClick={handleNavClick}>
                 <Home className="w-5 h-5" /> <span>Dashboard</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={location.pathname === '/registrar'}>
-              <Link to="/registrar">
+              <Link to="/registrar" onClick={handleNavClick}>
                 <Plus className="w-5 h-5" /> <span>Registrar Visita</span>
               </Link>
             </SidebarMenuButton>
@@ -67,7 +79,7 @@ export function AppSidebar() {
           {isManager && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={location.pathname === '/ranking'}>
-                <Link to="/ranking">
+                <Link to="/ranking" onClick={handleNavClick}>
                   <Trophy className="w-5 h-5" /> <span>Ranking</span>
                 </Link>
               </SidebarMenuButton>
@@ -75,7 +87,7 @@ export function AppSidebar() {
           )}
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={location.pathname === '/clientes'}>
-              <Link to="/clientes">
+              <Link to="/clientes" onClick={handleNavClick}>
                 <Contact className="w-5 h-5" /> <span>Clientes</span>
               </Link>
             </SidebarMenuButton>
@@ -83,7 +95,7 @@ export function AppSidebar() {
           {isManager && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={location.pathname === '/vendedores'}>
-                <Link to="/vendedores">
+                <Link to="/vendedores" onClick={handleNavClick}>
                   <Users className="w-5 h-5" /> <span>Equipe de Vendas</span>
                 </Link>
               </SidebarMenuButton>
@@ -92,7 +104,7 @@ export function AppSidebar() {
           {isManager && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={location.pathname === '/industrias'}>
-                <Link to="/industrias">
+                <Link to="/industrias" onClick={handleNavClick}>
                   <Building2 className="w-5 h-5" /> <span>Indústrias</span>
                 </Link>
               </SidebarMenuButton>
@@ -101,7 +113,7 @@ export function AppSidebar() {
           {isManager && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={location.pathname === '/acessos'}>
-                <Link to="/acessos">
+                <Link to="/acessos" onClick={handleNavClick}>
                   <Shield className="w-5 h-5" /> <span>Gestão de Acessos</span>
                 </Link>
               </SidebarMenuButton>
@@ -110,7 +122,7 @@ export function AppSidebar() {
           {isManager && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={location.pathname === '/importar-dados'}>
-                <Link to="/importar-dados">
+                <Link to="/importar-dados" onClick={handleNavClick}>
                   <Upload className="w-5 h-5" /> <span>Importar Dados</span>
                 </Link>
               </SidebarMenuButton>
@@ -118,7 +130,7 @@ export function AppSidebar() {
           )}
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={location.pathname === '/configuracoes'}>
-              <Link to="/configuracoes">
+              <Link to="/configuracoes" onClick={handleNavClick}>
                 <Settings className="w-5 h-5" /> <span>Configurações</span>
               </Link>
             </SidebarMenuButton>

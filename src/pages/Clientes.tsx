@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Plus, Edit2, Ban, CheckCircle2, Users } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Plus, Edit2, Ban, CheckCircle2, Users, Search } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/hooks/use-toast'
 import useAppStore from '@/stores/useAppStore'
 import { Client } from '@/lib/types'
@@ -45,8 +46,10 @@ const formatCNPJ = (value: string) => {
 
 export default function Clientes() {
   const { clients, users, currentUser, addClient, updateClient } = useAppStore()
+  const [isLoading, setIsLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set())
   const [isBulkAssignModalOpen, setIsBulkAssignModalOpen] = useState(false)
@@ -59,15 +62,29 @@ export default function Clientes() {
     sellerId: '',
   })
 
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 800)
+    return () => clearTimeout(timer)
+  }, [])
+
   if (!currentUser) return null
+
+  const filteredClients = clients.filter((c) => {
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      return (
+        c.name.toLowerCase().includes(q) || c.cnpj?.includes(q) || c.city?.toLowerCase().includes(q)
+      )
+    }
+    return true
+  })
 
   const displayClients =
     currentUser.role === 'gestor'
-      ? clients
-      : clients.filter((c) => c.sellerId === currentUser.id || !c.sellerId)
+      ? filteredClients
+      : filteredClients.filter((c) => c.sellerId === currentUser.id || !c.sellerId)
 
   const sellers = users.filter((u) => u.role === 'vendedor')
-
   const getSellerName = (id: string) => users.find((u) => u.id === id)?.name || 'N/A'
 
   const openModal = (client?: Client) => {
@@ -118,11 +135,11 @@ export default function Clientes() {
   const handleBulkAssign = () => {
     if (!bulkSellerId) return
     selectedClientIds.forEach((id) => {
-      updateClient(id, { sellerId: bulkSellerId })
+      updateClient(id, { sellerId: bulkSellerId === 'unassigned' ? '' : bulkSellerId })
     })
     toast({
       title: 'Sucesso',
-      description: `${selectedClientIds.size} clientes atribuídos com sucesso.`,
+      description: `${selectedClientIds.size} clientes atualizados com sucesso.`,
     })
     setIsBulkAssignModalOpen(false)
     setSelectedClientIds(new Set())
@@ -193,7 +210,7 @@ export default function Clientes() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-hidden">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1E40AF]">Clientes</h1>
@@ -209,7 +226,7 @@ export default function Clientes() {
               onClick={() => setIsBulkAssignModalOpen(true)}
             >
               <Users className="w-4 h-4 mr-2" />
-              Atribuir Vendedor ({selectedClientIds.size})
+              Atribuir ({selectedClientIds.size})
             </Button>
           )}
           <Button
@@ -222,11 +239,24 @@ export default function Clientes() {
       </div>
 
       <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle>Lista de Clientes</CardTitle>
-          <CardDescription>Total de {displayClients.length} clientes na base.</CardDescription>
+        <CardHeader className="pb-4 space-y-4">
+          <div>
+            <CardTitle>Lista de Clientes</CardTitle>
+            <CardDescription>
+              Total de {isLoading ? '...' : displayClients.length} clientes na base.
+            </CardDescription>
+          </div>
+          <div className="relative max-w-md w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, CNPJ ou cidade..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6 sm:pt-0 overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
@@ -242,100 +272,140 @@ export default function Clientes() {
                     />
                   </TableHead>
                 )}
-                <TableHead>Razão Social</TableHead>
-                <TableHead>CNPJ</TableHead>
-                <TableHead>Cidade</TableHead>
-                {currentUser.role === 'gestor' && <TableHead>Vendedor</TableHead>}
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="min-w-[200px]">Razão Social</TableHead>
+                <TableHead className="min-w-[160px]">CNPJ</TableHead>
+                <TableHead className="min-w-[140px]">Cidade</TableHead>
+                {currentUser.role === 'gestor' && (
+                  <TableHead className="min-w-[160px]">Vendedor</TableHead>
+                )}
+                <TableHead className="min-w-[100px]">Status</TableHead>
+                <TableHead className="min-w-[100px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {displayClients.map((client) => (
-                <TableRow key={client.id}>
-                  {currentUser.role === 'gestor' && (
-                    <TableCell className="px-4">
-                      <Checkbox
-                        checked={selectedClientIds.has(client.id)}
-                        onCheckedChange={(checked) => handleSelectOne(client.id, !!checked)}
-                        aria-label={`Selecionar ${client.name}`}
-                      />
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {currentUser.role === 'gestor' && (
+                      <TableCell className="px-4">
+                        <Skeleton className="h-4 w-4" />
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      <Skeleton className="h-4 w-[180px]" />
                     </TableCell>
-                  )}
-                  <TableCell className="font-medium min-w-[150px]">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                      <span>{client.name}</span>
-                      {!client.sellerId && (
-                        <Badge
-                          variant="outline"
-                          className="w-fit text-amber-600 border-amber-500/50 bg-amber-50 dark:bg-amber-950/50 dark:text-amber-400 text-[10px] px-1.5 py-0 h-5"
-                        >
-                          Carteira Livre
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="min-w-[160px]">{client.cnpj || 'N/A'}</TableCell>
-                  <TableCell className="min-w-[120px]">{client.city || client.region}</TableCell>
-                  {currentUser.role === 'gestor' && (
-                    <TableCell className="text-muted-foreground min-w-[150px]">
-                      {client.sellerId ? (
-                        getSellerName(client.sellerId)
-                      ) : (
-                        <span className="text-amber-600 font-medium">Sem Dono</span>
-                      )}
+                    <TableCell>
+                      <Skeleton className="h-4 w-[140px]" />
                     </TableCell>
-                  )}
-                  <TableCell>
-                    <Badge
-                      variant={client.status === 'inactive' ? 'secondary' : 'outline'}
-                      className={
-                        client.status === 'inactive'
-                          ? ''
-                          : 'border-green-500/50 text-green-600 bg-green-50 dark:bg-green-950 dark:text-green-400'
-                      }
-                    >
-                      {client.status === 'inactive' ? 'Inativo' : 'Ativo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openModal(client)}
-                      title="Editar"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleToggleStatus(client)}
-                      title={client.status === 'inactive' ? 'Ativar' : 'Desativar'}
-                      className={
-                        client.status === 'inactive'
-                          ? 'text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/50'
-                          : 'text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50'
-                      }
-                    >
-                      {client.status === 'inactive' ? (
-                        <CheckCircle2 className="w-4 h-4" />
-                      ) : (
-                        <Ban className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {displayClients.length === 0 && (
+                    <TableCell>
+                      <Skeleton className="h-4 w-[100px]" />
+                    </TableCell>
+                    {currentUser.role === 'gestor' && (
+                      <TableCell>
+                        <Skeleton className="h-4 w-[130px]" />
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      <Skeleton className="h-5 w-[60px] rounded-full" />
+                    </TableCell>
+                    <TableCell className="flex justify-end gap-2">
+                      <Skeleton className="h-8 w-8 rounded-md" />
+                      <Skeleton className="h-8 w-8 rounded-md" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : displayClients.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={currentUser.role === 'gestor' ? 7 : 5}
-                    className="text-center text-muted-foreground py-8"
+                    className="text-center text-muted-foreground py-12"
                   >
                     Nenhum cliente encontrado.
                   </TableCell>
                 </TableRow>
+              ) : (
+                displayClients.map((client) => (
+                  <TableRow key={client.id}>
+                    {currentUser.role === 'gestor' && (
+                      <TableCell className="px-4">
+                        <Checkbox
+                          checked={selectedClientIds.has(client.id)}
+                          onCheckedChange={(checked) => handleSelectOne(client.id, !!checked)}
+                          aria-label={`Selecionar ${client.name}`}
+                        />
+                      </TableCell>
+                    )}
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col gap-1.5 items-start">
+                        <span className="truncate max-w-[250px]" title={client.name}>
+                          {client.name}
+                        </span>
+                        {!client.sellerId && (
+                          <Badge
+                            variant="outline"
+                            className="text-amber-600 border-amber-500/50 bg-amber-50 dark:bg-amber-950/50 dark:text-amber-400 text-[10px] px-1.5 py-0 h-5"
+                          >
+                            Carteira Livre
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{client.cnpj || 'N/A'}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {client.city || client.region}
+                    </TableCell>
+                    {currentUser.role === 'gestor' && (
+                      <TableCell className="text-muted-foreground">
+                        {client.sellerId ? (
+                          getSellerName(client.sellerId)
+                        ) : (
+                          <span className="text-amber-600 font-medium">Sem Dono</span>
+                        )}
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      <Badge
+                        variant={client.status === 'inactive' ? 'secondary' : 'outline'}
+                        className={
+                          client.status === 'inactive'
+                            ? ''
+                            : 'border-green-500/50 text-green-600 bg-green-50 dark:bg-green-950 dark:text-green-400'
+                        }
+                      >
+                        {client.status === 'inactive' ? 'Inativo' : 'Ativo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openModal(client)}
+                          title="Editar"
+                        >
+                          <Edit2 className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleToggleStatus(client)}
+                          title={client.status === 'inactive' ? 'Ativar' : 'Desativar'}
+                          className={
+                            client.status === 'inactive'
+                              ? 'text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/50'
+                              : 'text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50'
+                          }
+                        >
+                          {client.status === 'inactive' ? (
+                            <CheckCircle2 className="w-4 h-4" />
+                          ) : (
+                            <Ban className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
@@ -436,6 +506,7 @@ export default function Clientes() {
                   <SelectValue placeholder="Selecione um vendedor" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="unassigned">Nenhum (Carteira Livre)</SelectItem>
                   {sellers.map((seller) => (
                     <SelectItem key={seller.id} value={seller.id}>
                       {seller.name}
