@@ -125,8 +125,10 @@ export default function Configuracoes() {
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-        <p className="text-muted-foreground mt-1">Ajustes do sistema, integrações e perfil.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Configurações</h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
+          Ajustes do sistema, integrações e perfil.
+        </p>
       </div>
 
       <Card className="border-border/50">
@@ -182,11 +184,15 @@ export default function Configuracoes() {
                       onChange={handleFileChange}
                     />
                     <div className="flex flex-wrap gap-3">
-                      <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                      <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full sm:w-auto"
+                      >
                         <Upload className="w-4 h-4 mr-2" />
                         Selecionar Arquivo
                       </Button>
-                      <Button onClick={handleSaveBrand}>
+                      <Button onClick={handleSaveBrand} className="w-full sm:w-auto">
                         <Save className="w-4 h-4 mr-2" /> Salvar Alterações
                       </Button>
                     </div>
@@ -209,11 +215,21 @@ export default function Configuracoes() {
                         className="max-h-24 object-contain"
                       />
                     </div>
-                    <div className="flex gap-3">
-                      <Button variant="secondary" size="sm" onClick={handleDownload}>
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleDownload}
+                        className="w-full sm:w-auto"
+                      >
                         <Download className="w-4 h-4 mr-2" /> Baixar Logo
                       </Button>
-                      <Button variant="destructive" size="sm" onClick={handleRemoveLogo}>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleRemoveLogo}
+                        className="w-full sm:w-auto"
+                      >
                         <Trash2 className="w-4 h-4 mr-2" /> Remover
                       </Button>
                     </div>
@@ -238,7 +254,7 @@ export default function Configuracoes() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="apiKey">API Key / Token de Acesso</Label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Input
                     id="apiKey"
                     type="password"
@@ -246,7 +262,11 @@ export default function Configuracoes() {
                     value={localApiKey}
                     onChange={(e) => setLocalApiKey(e.target.value)}
                   />
-                  <Button onClick={handleSaveIntegration} variant="secondary">
+                  <Button
+                    onClick={handleSaveIntegration}
+                    variant="secondary"
+                    className="w-full sm:w-auto shrink-0"
+                  >
                     <Save className="w-4 h-4 mr-2" /> Salvar
                   </Button>
                 </div>
@@ -260,7 +280,12 @@ export default function Configuracoes() {
                     {lastSync ? format(new Date(lastSync), 'dd/MM/yyyy HH:mm') : 'Nunca'}
                   </p>
                 </div>
-                <Button variant="outline" onClick={handleSync} disabled={isSyncing}>
+                <Button
+                  variant="outline"
+                  onClick={handleSync}
+                  disabled={isSyncing}
+                  className="w-full sm:w-auto shrink-0"
+                >
                   <RefreshCw className={cn('w-4 h-4 mr-2', isSyncing && 'animate-spin')} />
                   {isSyncing ? 'Sincronizando...' : 'Sincronizar Agora'}
                 </Button>

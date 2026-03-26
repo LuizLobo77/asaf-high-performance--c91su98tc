@@ -103,12 +103,17 @@ export default function Acessos() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1E40AF]">Gestão de Acessos</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1E40AF]">
+            Gestão de Acessos
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Administre os usuários do sistema, permissões e redefinição de senhas.
           </p>
         </div>
-        <Button onClick={handleOpenNew} className="bg-[#1E40AF] hover:bg-[#1E40AF]/90">
+        <Button
+          onClick={handleOpenNew}
+          className="w-full sm:w-auto bg-[#1E40AF] hover:bg-[#1E40AF]/90"
+        >
           <Plus className="w-4 h-4 mr-2" /> Novo Usuário
         </Button>
       </div>
@@ -137,9 +142,9 @@ export default function Acessos() {
             <TableBody>
               {users.map((u) => (
                 <TableRow key={u.id} className={u.status === 'inactive' ? 'opacity-60' : ''}>
-                  <TableCell className="font-medium">{u.name}</TableCell>
-                  <TableCell>{u.email}</TableCell>
-                  <TableCell>{u.phone || 'N/A'}</TableCell>
+                  <TableCell className="font-medium min-w-[150px]">{u.name}</TableCell>
+                  <TableCell className="min-w-[150px]">{u.email}</TableCell>
+                  <TableCell className="min-w-[120px]">{u.phone || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="capitalize">
                       {u.role}
@@ -178,7 +183,7 @@ export default function Acessos() {
       </Card>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-[425px] rounded-lg">
           <DialogHeader>
             <DialogTitle>{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
             <DialogDescription>
@@ -202,7 +207,7 @@ export default function Acessos() {
                 required
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefone</Label>
                 <Input

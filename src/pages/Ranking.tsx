@@ -24,8 +24,10 @@ export default function Ranking() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Ranking de Performance</h1>
-        <p className="text-muted-foreground mt-1">Comparativo detalhado entre os vendedores.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Ranking de Performance</h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
+          Comparativo detalhado entre os vendedores.
+        </p>
       </div>
 
       <Card className="border-border/50">
@@ -52,14 +54,14 @@ export default function Ranking() {
                 return (
                   <TableRow key={seller.id}>
                     <TableCell className="font-bold">{index + 1}º</TableCell>
-                    <TableCell className="font-medium">{seller.name}</TableCell>
+                    <TableCell className="font-medium min-w-[140px]">{seller.name}</TableCell>
                     <TableCell className="text-right">{seller.visits}</TableCell>
                     <TableCell className="text-right">{seller.conversion.toFixed(1)}%</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right min-w-[120px]">
                       R${' '}
                       {seller.averageTicket.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
                     </TableCell>
-                    <TableCell className="text-right font-bold text-primary">
+                    <TableCell className="text-right font-bold text-primary min-w-[120px]">
                       R$ {seller.actual.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
                     </TableCell>
                     <TableCell className="text-right">

@@ -29,7 +29,7 @@ export function RecentVisits({ visits }: { visits: Visit[] }) {
             return (
               <div
                 key={visit.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/50 hover:bg-muted/50 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-border/50 bg-background/50 hover:bg-muted/50 transition-colors gap-3"
               >
                 <div className="flex flex-col gap-1">
                   <span className="font-medium text-sm">{getClientName(visit.clientId)}</span>
@@ -38,7 +38,7 @@ export function RecentVisits({ visits }: { visits: Visit[] }) {
                     {visit.items.length === 1 ? 'ão' : 'ões'}
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 self-start sm:self-auto">
                   {totalValue > 0 && (
                     <span className="text-sm font-bold text-foreground">
                       R$ {totalValue.toLocaleString('pt-BR')}

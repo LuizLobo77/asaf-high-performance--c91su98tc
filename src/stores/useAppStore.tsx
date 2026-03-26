@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { mockUsers } from '@/lib/mockData'
 import type { User, Client, Industry, Visit, CommissionRule, IndustryNote } from '@/lib/types'
 import { api, configApi } from '@/lib/api'
@@ -75,6 +75,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const val = configApi.get('lastSync', '')
     return val || null
   })
+
+  // Listen for storage changes to sync authentication state across tabs and in-app browsers
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'asaf_currentUser') {
+        setCurrentUser(e.newValue ? JSON.parse(e.newValue) : null)
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
 
   const saveCurrentUser = (user: User | null) => {
     setCurrentUser(user)

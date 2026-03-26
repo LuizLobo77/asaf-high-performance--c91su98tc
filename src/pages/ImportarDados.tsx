@@ -15,23 +15,25 @@ export default function ImportarDados() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-[#1E40AF]">Importar Dados</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1E40AF]">
+          Importar Dados
+        </h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
           Sincronize as informações de vendas e gerencie importações em massa de forma otimizada.
         </p>
       </div>
 
       <Tabs defaultValue="clientes" className="w-full">
-        <TabsList className="mb-6 bg-muted/50 p-1">
+        <TabsList className="mb-6 bg-muted/50 p-1 flex w-full h-auto overflow-x-auto justify-start sm:justify-center">
           <TabsTrigger
             value="clientes"
-            className="px-6 data-[state=active]:bg-white data-[state=active]:text-[#1E40AF]"
+            className="px-6 data-[state=active]:bg-white data-[state=active]:text-[#1E40AF] shrink-0"
           >
             Clientes
           </TabsTrigger>
           <TabsTrigger
             value="visitas"
-            className="px-6 data-[state=active]:bg-white data-[state=active]:text-[#1E40AF]"
+            className="px-6 data-[state=active]:bg-white data-[state=active]:text-[#1E40AF] shrink-0"
           >
             Visitas
           </TabsTrigger>

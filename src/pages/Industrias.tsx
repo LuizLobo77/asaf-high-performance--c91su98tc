@@ -70,18 +70,20 @@ export default function Industrias() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1E40AF]">Indústrias</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1E40AF]">
+            Indústrias
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Gerencie os fornecedores e taxas de comissão.
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[#1E40AF] hover:bg-[#1E40AF]/90">
+            <Button className="w-full sm:w-auto bg-[#1E40AF] hover:bg-[#1E40AF]/90">
               <Plus className="w-4 h-4 mr-2" /> Nova Indústria
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:max-w-[425px] rounded-lg">
             <DialogHeader>
               <DialogTitle>Adicionar Fornecedor</DialogTitle>
               <DialogDescription>
@@ -138,8 +140,8 @@ export default function Industrias() {
                   key={ind.id}
                   className={ind.status === 'inactive' ? 'opacity-60 bg-muted/30' : ''}
                 >
-                  <TableCell className="font-medium">{ind.name}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="font-medium min-w-[150px]">{ind.name}</TableCell>
+                  <TableCell className="text-right min-w-[150px]">
                     {(ind.commissionPercent * 100).toFixed(2)}%
                   </TableCell>
                   <TableCell className="text-center">

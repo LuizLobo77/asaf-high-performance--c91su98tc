@@ -15,7 +15,7 @@ export function InactiveClientsAlert({ data }: { data: any[] }) {
             {data.map((client) => (
               <div
                 key={client.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/50"
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-border/50 bg-background/50 gap-2"
               >
                 <div className="flex flex-col">
                   <span className="font-medium text-sm text-foreground">{client.name}</span>
@@ -23,7 +23,7 @@ export function InactiveClientsAlert({ data }: { data: any[] }) {
                     Vendedor: {client.sellerName}
                   </span>
                 </div>
-                <div>
+                <div className="self-start sm:self-auto">
                   <Badge
                     variant={client.status === 'red' ? 'destructive' : 'outline'}
                     className={

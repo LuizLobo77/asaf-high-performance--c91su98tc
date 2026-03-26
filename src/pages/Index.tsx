@@ -20,12 +20,12 @@ export default function Index() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Bem-vindo de volta, {currentUser.name}. Aqui está o resumo da sua performance.
           </p>
         </div>
-        <div className="w-[180px]">
+        <div className="w-full sm:w-[180px]">
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger>
               <SelectValue placeholder="Selecione o período" />

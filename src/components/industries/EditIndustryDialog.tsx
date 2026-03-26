@@ -53,7 +53,7 @@ export function EditIndustryDialog({ industry, onClose }: EditIndustryDialogProp
 
   return (
     <Dialog open={!!industry} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent className="w-[95vw] sm:max-w-[425px] rounded-lg">
         <DialogHeader>
           <DialogTitle>Editar Indústria</DialogTitle>
           <DialogDescription>

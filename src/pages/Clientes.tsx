@@ -164,11 +164,16 @@ export default function Clientes() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1E40AF]">Clientes</h1>
-          <p className="text-muted-foreground mt-1">Gestão da carteira de clientes cadastrados.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1E40AF]">Clientes</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
+            Gestão da carteira de clientes cadastrados.
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => openModal()} className="bg-[#1E40AF] hover:bg-[#1E40AF]/90">
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            onClick={() => openModal()}
+            className="w-full sm:w-auto bg-[#1E40AF] hover:bg-[#1E40AF]/90"
+          >
             <Plus className="w-4 h-4 mr-2" /> Novo Cliente
           </Button>
         </div>
@@ -194,11 +199,11 @@ export default function Clientes() {
             <TableBody>
               {displayClients.map((client) => (
                 <TableRow key={client.id}>
-                  <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.cnpj || 'N/A'}</TableCell>
-                  <TableCell>{client.city || client.region}</TableCell>
+                  <TableCell className="font-medium min-w-[150px]">{client.name}</TableCell>
+                  <TableCell className="min-w-[160px]">{client.cnpj || 'N/A'}</TableCell>
+                  <TableCell className="min-w-[120px]">{client.city || client.region}</TableCell>
                   {currentUser.role === 'gestor' && (
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-muted-foreground min-w-[150px]">
                       {getSellerName(client.sellerId)}
                     </TableCell>
                   )}
@@ -259,7 +264,7 @@ export default function Clientes() {
       </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="w-[95vw] sm:max-w-[425px] rounded-lg">
           <DialogHeader>
             <DialogTitle>{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
             <DialogDescription>
@@ -318,11 +323,16 @@ export default function Clientes() {
                 </Select>
               </div>
             )}
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+            <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
+                className="w-full sm:w-auto"
+              >
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-[#1E40AF] hover:bg-[#1E40AF]/90">
+              <Button type="submit" className="w-full sm:w-auto bg-[#1E40AF] hover:bg-[#1E40AF]/90">
                 Salvar
               </Button>
             </DialogFooter>

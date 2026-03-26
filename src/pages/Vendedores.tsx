@@ -119,8 +119,10 @@ export default function Vendedores() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1E40AF]">Equipe de Vendas</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1E40AF]">
+            Equipe de Vendas
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Gerencie sua equipe, configure splits de comissão e desative vendedores.
           </p>
         </div>
@@ -152,9 +154,9 @@ export default function Vendedores() {
                   key={s.id}
                   className={s.status === 'inactive' ? 'opacity-60 bg-muted/30' : ''}
                 >
-                  <TableCell className="font-medium">{s.name}</TableCell>
-                  <TableCell>{s.email}</TableCell>
-                  <TableCell>{s.phone || 'Não informado'}</TableCell>
+                  <TableCell className="font-medium min-w-[150px]">{s.name}</TableCell>
+                  <TableCell className="min-w-[150px]">{s.email}</TableCell>
+                  <TableCell className="min-w-[120px]">{s.phone || 'Não informado'}</TableCell>
                   <TableCell>
                     <Badge
                       variant={s.status === 'active' ? 'default' : 'secondary'}
@@ -213,7 +215,7 @@ export default function Vendedores() {
 
       {/* Configuração de Split Dialog */}
       <Dialog open={isSplitOpen} onOpenChange={setIsSplitOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg">
           <DialogHeader>
             <DialogTitle>Regras de Comissão: {splitUser?.name}</DialogTitle>
             <DialogDescription>
@@ -224,7 +226,7 @@ export default function Vendedores() {
           <div className="space-y-6 pt-4">
             <form
               onSubmit={handleAddSplit}
-              className="flex items-end gap-4 bg-muted/20 p-4 rounded-lg border border-border/50"
+              className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4 bg-muted/20 p-4 rounded-lg border border-border/50"
             >
               <div className="flex-1 space-y-2">
                 <Label>Indústria</Label>
@@ -241,7 +243,7 @@ export default function Vendedores() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="w-32 space-y-2">
+              <div className="w-full sm:w-32 space-y-2">
                 <Label>Split (%)</Label>
                 <Input
                   type="number"
@@ -254,7 +256,7 @@ export default function Vendedores() {
                   required
                 />
               </div>
-              <Button type="submit" variant="secondary">
+              <Button type="submit" variant="secondary" className="w-full sm:w-auto">
                 Adicionar Regra
               </Button>
             </form>
@@ -273,7 +275,7 @@ export default function Vendedores() {
                     const ind = industries.find((i) => i.id === rule.industryId)
                     return (
                       <TableRow key={rule.id}>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium min-w-[120px]">
                           {ind?.name || 'Indústria não encontrada'}
                           {ind?.status === 'inactive' && (
                             <span className="text-xs text-muted-foreground ml-2">(Inativa)</span>
@@ -296,7 +298,7 @@ export default function Vendedores() {
                   {userSplits.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={3} className="text-center text-muted-foreground py-4">
-                        Nenhuma regra de split configurada para este vendedor.
+                        Nenhuma regra configurada.
                       </TableCell>
                     </TableRow>
                   )}
@@ -309,7 +311,7 @@ export default function Vendedores() {
               <h4 className="text-sm font-semibold flex items-center gap-2 text-[#1E40AF] mb-4">
                 <Calculator className="w-4 h-4" /> Simulador de Repasse (Motor de Cálculo)
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Valor do Pedido (R$)</Label>
                   <Input

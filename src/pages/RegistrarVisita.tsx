@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatISO } from 'date-fns'
 import { CheckCircle2, Plus, Trash2 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -39,13 +39,11 @@ export default function RegistrarVisita() {
 
   if (!currentUser) return null
 
-  // Filter out inactive clients for dropdown
   const myClients =
     currentUser.role === 'vendedor'
       ? clients.filter((c) => c.sellerId === currentUser.id && c.status !== 'inactive')
       : clients.filter((c) => c.status !== 'inactive')
 
-  // Filter out soft-deleted industries for new registrations
   const activeIndustries = industries.filter((i) => i.status !== 'inactive')
 
   const addItemRow = () => {
@@ -112,15 +110,19 @@ export default function RegistrarVisita() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in zoom-in duration-500">
         <CheckCircle2 className="w-24 h-24 text-green-500 mb-6 animate-pulse" />
-        <h2 className="text-3xl font-bold mb-2 text-[#1E40AF]">Visita Registrada!</h2>
-        <p className="text-muted-foreground mb-8 text-center max-w-md">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-[#1E40AF] text-center">
+          Visita Registrada!
+        </h2>
+        <p className="text-sm sm:text-base text-muted-foreground mb-8 text-center max-w-md px-4">
           As informações de todas as indústrias foram salvas e já refletem na sua performance.
         </p>
-        <div className="flex gap-4">
-          <Button variant="outline" onClick={() => navigate('/')}>
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-4">
+          <Button variant="outline" onClick={() => navigate('/')} className="w-full sm:w-auto">
             Ir para Dashboard
           </Button>
-          <Button onClick={resetForm}>Registrar Nova</Button>
+          <Button onClick={resetForm} className="w-full sm:w-auto">
+            Registrar Nova
+          </Button>
         </div>
       </div>
     )
@@ -129,8 +131,10 @@ export default function RegistrarVisita() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-[#1E40AF]">Registrar Visita</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1E40AF]">
+          Registrar Visita
+        </h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
           Preencha os detalhes e adicione os resultados por indústria.
         </p>
       </div>
@@ -138,7 +142,7 @@ export default function RegistrarVisita() {
       <Card className="border-border/50">
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div className="space-y-2">
                 <Label htmlFor="date">Data da Visita</Label>
                 <Input
@@ -172,9 +176,15 @@ export default function RegistrarVisita() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b pb-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-2 gap-3">
                 <h3 className="text-lg font-semibold text-[#1E40AF]">Interações e Vendas</h3>
-                <Button type="button" variant="outline" size="sm" onClick={addItemRow}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addItemRow}
+                  className="w-full sm:w-auto"
+                >
                   <Plus className="w-4 h-4 mr-2" /> Adicionar Venda
                 </Button>
               </div>
@@ -233,16 +243,17 @@ export default function RegistrarVisita() {
                       </>
                     )}
                   </div>
-                  <div className="md:col-span-1 flex justify-end">
+                  <div className="md:col-span-1 flex justify-end mt-2 md:mt-0">
                     {items.length > 1 && (
                       <Button
                         type="button"
                         variant="ghost"
-                        size="icon"
+                        size="sm"
                         onClick={() => removeItemRow(item.id)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="text-destructive w-full md:w-auto flex items-center justify-center hover:bg-destructive/10 hover:text-destructive"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4 md:mr-0 mr-2" />
+                        <span className="md:hidden">Remover</span>
                       </Button>
                     )}
                   </div>

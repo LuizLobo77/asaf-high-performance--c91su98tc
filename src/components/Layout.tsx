@@ -17,7 +17,7 @@ export default function Layout() {
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <Header />
-          <main className="flex-1 p-6 max-w-[1440px] mx-auto w-full animate-fade-in">
+          <main className="flex-1 p-4 md:p-6 max-w-[1440px] mx-auto w-full animate-fade-in overflow-x-hidden">
             <Outlet />
           </main>
         </div>
