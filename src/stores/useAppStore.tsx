@@ -6,7 +6,7 @@ import {
   mockVisits,
   mockCommissionRules,
 } from '@/lib/mockData'
-import type { User, Client, Industry, Visit, CommissionRule } from '@/lib/types'
+import type { User, Client, Industry, Visit, CommissionRule, IndustryNote } from '@/lib/types'
 
 interface AppState {
   currentUser: User
@@ -15,6 +15,7 @@ interface AppState {
   industries: Industry[]
   visits: Visit[]
   commissionRules: CommissionRule[]
+  industryNotes: IndustryNote[]
   logoUrl: string
   suasVendasApiKey: string
   lastSync: string | null
@@ -27,6 +28,7 @@ interface AppState {
   deleteIndustry: (id: string) => void
   setCommissionRule: (rule: CommissionRule) => void
   deleteCommissionRule: (id: string) => void
+  addIndustryNote: (note: Omit<IndustryNote, 'id' | 'date'>) => void
   setLogoUrl: (url: string) => void
   setSuasVendasApiKey: (key: string) => void
   syncSuasVendas: () => Promise<void>
@@ -41,6 +43,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [industries, setIndustries] = useState<Industry[]>(mockIndustries)
   const [visits, setVisits] = useState<Visit[]>(mockVisits)
   const [commissionRules, setCommissionRules] = useState<CommissionRule[]>(mockCommissionRules)
+  const [industryNotes, setIndustryNotes] = useState<IndustryNote[]>([])
   const [logoUrl, setLogoUrl] = useState<string>('')
   const [suasVendasApiKey, setSuasVendasApiKey] = useState<string>('')
   const [lastSync, setLastSync] = useState<string | null>(null)
@@ -85,6 +88,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setCommissionRules((prev) => prev.filter((r) => r.id !== id))
   }
 
+  const addIndustryNote = (note: Omit<IndustryNote, 'id' | 'date'>) => {
+    setIndustryNotes((prev) => [
+      ...prev,
+      { ...note, id: `note-${Date.now()}`, date: new Date().toISOString() },
+    ])
+  }
+
   const syncSuasVendas = async () => {
     if (!suasVendasApiKey) {
       throw new Error('Configure a API Key primeiro.')
@@ -115,6 +125,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         industries,
         visits,
         commissionRules,
+        industryNotes,
         logoUrl,
         suasVendasApiKey,
         lastSync,
@@ -127,6 +138,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         deleteIndustry,
         setCommissionRule,
         deleteCommissionRule,
+        addIndustryNote,
         setLogoUrl,
         setSuasVendasApiKey,
         syncSuasVendas,

@@ -6,10 +6,13 @@ import { RecentVisits } from './RecentVisits'
 import useAppStore from '@/stores/useAppStore'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { InactiveClientsAlert } from '@/components/dashboard/InactiveClientsAlert'
+import { ParetoCurve } from '@/components/dashboard/ParetoCurve'
+import { LowTractionIndustries } from '@/components/dashboard/LowTractionIndustries'
 
-export function SellerDashboard() {
+export function SellerDashboard({ period = 'mes' }: { period?: string }) {
   const { currentUser } = useAppStore()
-  const metrics = useDashboardMetrics(currentUser.id)
+  const metrics = useDashboardMetrics(currentUser.id, period)
 
   const targetProgress =
     currentUser.target > 0 ? Math.min((metrics.totalSalesValue / currentUser.target) * 100, 100) : 0
@@ -60,12 +63,18 @@ export function SellerDashboard() {
         </Card>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <InactiveClientsAlert data={metrics.inactiveClients} />
+        <ParetoCurve data={metrics.paretoClients} />
+        <LowTractionIndustries data={metrics.lowTractionIndustries} period={period} />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3">
           <TrendChart
             data={metrics.trendData}
             title="Minha Performance"
-            description="Vendas diárias nos últimos 30 dias"
+            description="Vendas diárias no período selecionado"
           />
         </div>
         <div className="lg:col-span-2">

@@ -48,3 +48,11 @@ export interface Visit {
   notes?: string
   externalId?: string
 }
+
+export interface IndustryNote {
+  id: string
+  industryId: string
+  period: string
+  note: string
+  date: string
+}
