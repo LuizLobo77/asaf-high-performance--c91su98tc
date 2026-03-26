@@ -24,6 +24,9 @@ import useAppStore from '@/stores/useAppStore'
 export function AppSidebar() {
   const location = useLocation()
   const { currentUser, logoUrl } = useAppStore()
+
+  if (!currentUser) return null
+
   const isManager = currentUser.role === 'gestor'
 
   return (

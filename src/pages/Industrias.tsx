@@ -29,6 +29,8 @@ export default function Industrias() {
   const [name, setName] = useState('')
   const [commission, setCommission] = useState('')
 
+  if (!currentUser) return null
+
   if (currentUser.role !== 'gestor') {
     return <div className="text-center py-20 text-destructive font-bold text-xl">Acesso Negado</div>
   }

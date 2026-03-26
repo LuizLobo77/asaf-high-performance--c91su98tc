@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import Layout from '@/components/Layout'
 import { AppProvider } from '@/stores/useAppStore'
 
+import Login from './pages/Login'
 import Index from './pages/Index'
 import RegistrarVisita from './pages/RegistrarVisita'
 import ImportarDados from './pages/ImportarDados'
@@ -22,6 +23,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <Routes>
+          <Route path="/login" element={<Login />} />
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/registrar" element={<RegistrarVisita />} />

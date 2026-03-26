@@ -10,6 +10,7 @@ export const mockUsers: User[] = [
     target: 0,
     status: 'active',
     phone: '(11) 99999-0000',
+    password: '123456',
   },
   {
     id: 'u2',
@@ -19,6 +20,7 @@ export const mockUsers: User[] = [
     target: 150000,
     status: 'active',
     phone: '(11) 99999-1111',
+    password: '123456',
   },
   {
     id: 'u3',
@@ -28,6 +30,7 @@ export const mockUsers: User[] = [
     target: 120000,
     status: 'active',
     phone: '(11) 99999-2222',
+    password: '123456',
   },
   {
     id: 'u4',
@@ -37,6 +40,7 @@ export const mockUsers: User[] = [
     target: 100000,
     status: 'inactive',
     phone: '(11) 99999-3333',
+    password: '123456',
   },
 ]
 

@@ -12,6 +12,8 @@ import useAppStore from '@/stores/useAppStore'
 export default function Clientes() {
   const { clients, users, currentUser } = useAppStore()
 
+  if (!currentUser) return null
+
   const displayClients =
     currentUser.role === 'gestor' ? clients : clients.filter((c) => c.sellerId === currentUser.id)
 

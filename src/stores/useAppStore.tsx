@@ -9,7 +9,7 @@ import {
 import type { User, Client, Industry, Visit, CommissionRule, IndustryNote } from '@/lib/types'
 
 interface AppState {
-  currentUser: User
+  currentUser: User | null
   users: User[]
   clients: Client[]
   industries: Industry[]
@@ -19,7 +19,12 @@ interface AppState {
   logoUrl: string
   suasVendasApiKey: string
   lastSync: string | null
-  setCurrentUser: (id: string) => void
+  login: (
+    email: string,
+    password?: string,
+  ) => { success: boolean; requireChange?: boolean; user?: User }
+  logout: () => void
+  forceLogin: (user: User) => void
   addUser: (user: User) => void
   updateUser: (id: string, user: Partial<User>) => void
   addVisit: (visit: Visit) => void
@@ -38,7 +43,7 @@ const AppContext = createContext<AppState | null>(null)
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [users, setUsers] = useState<User[]>(mockUsers)
-  const [currentUser, setCurrentUser] = useState<User>(mockUsers[0]) // Starts as Gestor
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [clients] = useState<Client[]>(mockClients)
   const [industries, setIndustries] = useState<Industry[]>(mockIndustries)
   const [visits, setVisits] = useState<Visit[]>(mockVisits)
@@ -48,17 +53,35 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [suasVendasApiKey, setSuasVendasApiKey] = useState<string>('')
   const [lastSync, setLastSync] = useState<string | null>(null)
 
-  const handleSetCurrentUser = (id: string) => {
-    const user = users.find((u) => u.id === id)
-    if (user) setCurrentUser(user)
+  const login = (email: string, pass?: string) => {
+    const user = users.find((u) => u.email === email && u.password === pass)
+    if (user) {
+      if (user.status === 'inactive') {
+        throw new Error('Conta inativa. Acesso bloqueado.')
+      }
+      if (user.mustChangePassword) {
+        return { success: false, requireChange: true, user }
+      }
+      setCurrentUser(user)
+      return { success: true }
+    }
+    return { success: false }
+  }
+
+  const logout = () => {
+    setCurrentUser(null)
+  }
+
+  const forceLogin = (user: User) => {
+    setCurrentUser(user)
   }
 
   const addUser = (user: User) => setUsers((prev) => [...prev, user])
 
   const updateUser = (id: string, partial: Partial<User>) => {
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...partial } : u)))
-    if (currentUser.id === id) {
-      setCurrentUser((prev) => ({ ...prev, ...partial }))
+    if (currentUser?.id === id) {
+      setCurrentUser((prev) => (prev ? { ...prev, ...partial } : null))
     }
   }
 
@@ -129,7 +152,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         logoUrl,
         suasVendasApiKey,
         lastSync,
-        setCurrentUser: handleSetCurrentUser,
+        login,
+        logout,
+        forceLogin,
         addUser,
         updateUser,
         addVisit,

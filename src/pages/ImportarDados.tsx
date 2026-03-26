@@ -10,6 +10,8 @@ export default function ImportarDados() {
   const { currentUser, importVisits, users, clients, industries } = useAppStore()
   const [isDragging, setIsDragging] = useState(false)
 
+  if (!currentUser) return null
+
   if (currentUser.role !== 'gestor') {
     return <div className="text-center py-20 text-destructive font-bold text-xl">Acesso Negado</div>
   }

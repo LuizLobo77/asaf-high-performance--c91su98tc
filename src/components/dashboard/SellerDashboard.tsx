@@ -12,6 +12,9 @@ import { LowTractionIndustries } from '@/components/dashboard/LowTractionIndustr
 
 export function SellerDashboard({ period = 'mes' }: { period?: string }) {
   const { currentUser } = useAppStore()
+
+  if (!currentUser) return null
+
   const metrics = useDashboardMetrics(currentUser.id, period)
 
   const targetProgress =

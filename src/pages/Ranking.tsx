@@ -15,6 +15,8 @@ export default function Ranking() {
   const { currentUser } = useAppStore()
   const metrics = useDashboardMetrics()
 
+  if (!currentUser) return null
+
   if (currentUser.role !== 'gestor') {
     return <div className="text-center py-20 text-destructive font-bold text-xl">Acesso Negado</div>
   }

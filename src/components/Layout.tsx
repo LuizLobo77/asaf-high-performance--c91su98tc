@@ -1,9 +1,16 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, Navigate } from 'react-router-dom'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/layout/AppSidebar'
 import { Header } from '@/components/layout/Header'
+import useAppStore from '@/stores/useAppStore'
 
 export default function Layout() {
+  const { currentUser } = useAppStore()
+
+  if (!currentUser) {
+    return <Navigate to="/login" replace />
+  }
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-muted/20">

@@ -9,6 +9,8 @@ export interface User {
   target: number
   phone?: string
   status?: 'active' | 'inactive'
+  password?: string
+  mustChangePassword?: boolean
 }
 
 export interface Client {

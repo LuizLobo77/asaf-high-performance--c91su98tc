@@ -45,6 +45,8 @@ export default function Vendedores() {
     deleteCommissionRule,
   } = useAppStore()
 
+  if (!currentUser) return null
+
   const [isUserOpen, setIsUserOpen] = useState(false)
   const [isSplitOpen, setIsSplitOpen] = useState(false)
 
@@ -53,6 +55,7 @@ export default function Vendedores() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [password, setPassword] = useState('')
   const [status, setStatus] = useState<'active' | 'inactive'>('active')
 
   // Split Config State
@@ -75,6 +78,7 @@ export default function Vendedores() {
     setName('')
     setEmail('')
     setPhone('')
+    setPassword('')
     setStatus('active')
     setIsUserOpen(true)
   }
@@ -84,6 +88,7 @@ export default function Vendedores() {
     setName(u.name)
     setEmail(u.email)
     setPhone(u.phone || '')
+    setPassword(u.password || '')
     setStatus(u.status || 'active')
     setIsUserOpen(true)
   }
@@ -101,7 +106,13 @@ export default function Vendedores() {
     if (!name || !email) return
 
     if (editingUser) {
-      updateUser(editingUser.id, { name, email, phone, status })
+      updateUser(editingUser.id, {
+        name,
+        email,
+        phone,
+        status,
+        ...(password ? { password } : {}),
+      })
       toast({ title: 'Vendedor atualizado com sucesso.' })
     } else {
       addUser({
@@ -110,6 +121,8 @@ export default function Vendedores() {
         email,
         phone,
         status,
+        password: password || 'Mudar@123',
+        mustChangePassword: !password || password === 'Mudar@123',
         role: 'vendedor',
         target: 0,
       })
@@ -255,7 +268,7 @@ export default function Vendedores() {
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email de Acesso</Label>
               <Input
                 id="email"
                 type="email"
@@ -264,14 +277,26 @@ export default function Vendedores() {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="(00) 00000-0000"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">{editingUser ? 'Nova Senha' : 'Senha Inicial'}</Label>
+                <Input
+                  id="password"
+                  type="text"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={editingUser ? 'Deixe em branco para manter' : 'Padrão: Mudar@123'}
+                />
+              </div>
             </div>
             <div className="flex items-center justify-between pt-2">
               <Label htmlFor="status">Cadastro Ativo</Label>
@@ -281,7 +306,7 @@ export default function Vendedores() {
                 onCheckedChange={(checked) => setStatus(checked ? 'active' : 'inactive')}
               />
             </div>
-            <Button type="submit" className="w-full mt-4">
+            <Button type="submit" className="w-full mt-4 bg-[#1E40AF] hover:bg-[#1E40AF]/90">
               Salvar Vendedor
             </Button>
           </form>

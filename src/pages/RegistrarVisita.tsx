@@ -29,6 +29,8 @@ export default function RegistrarVisita() {
   const navigate = useNavigate()
   const { currentUser, clients, industries, addVisit } = useAppStore()
 
+  if (!currentUser) return null
+
   const [isSuccess, setIsSuccess] = useState(false)
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [clientId, setClientId] = useState('')
@@ -57,7 +59,6 @@ export default function RegistrarVisita() {
     e.preventDefault()
     if (!clientId) return
 
-    // Validation
     for (const item of items) {
       if (!item.industryId) {
         toast({
@@ -167,7 +168,7 @@ export default function RegistrarVisita() {
                 </Button>
               </div>
 
-              {items.map((item, index) => (
+              {items.map((item) => (
                 <div
                   key={item.id}
                   className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-muted/20 p-4 rounded-lg border border-border/50 relative animate-in slide-in-from-top-2"
