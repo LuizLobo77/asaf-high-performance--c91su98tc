@@ -16,7 +16,10 @@ export interface User {
 export interface Client {
   id: string
   name: string
+  cnpj?: string
+  city?: string
   region: string
+  status?: 'active' | 'inactive'
   lastPurchase?: string
   sellerId: string
 }

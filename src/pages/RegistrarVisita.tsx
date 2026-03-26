@@ -39,8 +39,11 @@ export default function RegistrarVisita() {
 
   if (!currentUser) return null
 
+  // Filter out inactive clients for dropdown
   const myClients =
-    currentUser.role === 'vendedor' ? clients.filter((c) => c.sellerId === currentUser.id) : clients
+    currentUser.role === 'vendedor'
+      ? clients.filter((c) => c.sellerId === currentUser.id && c.status !== 'inactive')
+      : clients.filter((c) => c.status !== 'inactive')
 
   // Filter out soft-deleted industries for new registrations
   const activeIndustries = industries.filter((i) => i.status !== 'inactive')
@@ -108,7 +111,7 @@ export default function RegistrarVisita() {
   if (isSuccess) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in zoom-in duration-500">
-        <CheckCircle2 className="w-24 h-24 text-success mb-6 animate-pulse" />
+        <CheckCircle2 className="w-24 h-24 text-green-500 mb-6 animate-pulse" />
         <h2 className="text-3xl font-bold mb-2 text-[#1E40AF]">Visita Registrada!</h2>
         <p className="text-muted-foreground mb-8 text-center max-w-md">
           As informações de todas as indústrias foram salvas e já refletem na sua performance.
@@ -158,6 +161,11 @@ export default function RegistrarVisita() {
                         {c.name}
                       </SelectItem>
                     ))}
+                    {myClients.length === 0 && (
+                      <SelectItem value="empty" disabled>
+                        Nenhum cliente ativo encontrado
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

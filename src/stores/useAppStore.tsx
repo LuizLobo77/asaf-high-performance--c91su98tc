@@ -27,6 +27,9 @@ interface AppState {
   forceLogin: (user: User) => void
   addUser: (user: User) => void
   updateUser: (id: string, user: Partial<User>) => void
+  addClient: (client: Client) => void
+  updateClient: (id: string, client: Partial<Client>) => void
+  deleteClient: (id: string) => void
   addVisit: (visit: Visit) => void
   importVisits: (newVisits: Visit[]) => void
   addIndustry: (industry: Industry) => void
@@ -45,7 +48,7 @@ const AppContext = createContext<AppState | null>(null)
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [users, setUsers] = useState<User[]>(mockUsers)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const [clients] = useState<Client[]>(mockClients)
+  const [clients, setClients] = useState<Client[]>(mockClients)
   const [industries, setIndustries] = useState<Industry[]>(mockIndustries)
   const [visits, setVisits] = useState<Visit[]>(mockVisits)
   const [commissionRules, setCommissionRules] = useState<CommissionRule[]>(mockCommissionRules)
@@ -86,6 +89,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const addClient = (client: Client) => {
+    setClients((prev) => [...prev, client])
+  }
+
+  const updateClient = (id: string, partial: Partial<Client>) => {
+    setClients((prev) => prev.map((c) => (c.id === id ? { ...c, ...partial } : c)))
+  }
+
+  const deleteClient = (id: string) => {
+    setClients((prev) => prev.map((c) => (c.id === id ? { ...c, status: 'inactive' } : c)))
+  }
+
   const addVisit = (visit: Visit) => setVisits((prev) => [visit, ...prev])
 
   const importVisits = (newVisits: Visit[]) => {
@@ -104,7 +119,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const deleteIndustry = (id: string) => {
-    // Logical deletion (Soft Delete) to preserve historical integrity
     setIndustries((prev) => prev.map((i) => (i.id === id ? { ...i, status: 'inactive' } : i)))
   }
 
@@ -154,6 +168,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         forceLogin,
         addUser,
         updateUser,
+        addClient,
+        updateClient,
+        deleteClient,
         addVisit,
         importVisits,
         addIndustry,
