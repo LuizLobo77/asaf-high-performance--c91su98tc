@@ -109,7 +109,7 @@ export default function Industrias() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full bg-[#1E40AF] hover:bg-[#1E40AF]/90">
                 Salvar Indústria
               </Button>
             </form>

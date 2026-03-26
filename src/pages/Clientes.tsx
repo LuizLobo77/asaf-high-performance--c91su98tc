@@ -79,6 +79,7 @@ export default function Clientes() {
     return true
   })
 
+  // Vendor can only see their own clients OR clients with no vendor ("Carteira Livre")
   const displayClients =
     currentUser.role === 'gestor'
       ? filteredClients

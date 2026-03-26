@@ -39,6 +39,7 @@ export default function RegistrarVisita() {
 
   if (!currentUser) return null
 
+  // Include clients matching current user ID OR "Carteira Livre" (no assigned vendor)
   const myClients =
     currentUser.role === 'vendedor'
       ? clients.filter(
@@ -98,6 +99,7 @@ export default function RegistrarVisita() {
       })),
     })
 
+    // Automatic Vendor Assignment for "Carteira Livre" Clients
     const selectedClient = clients.find((c) => c.id === clientId)
     if (selectedClient && !selectedClient.sellerId && currentUser.role === 'vendedor') {
       updateClient(clientId, { sellerId: currentUser.id })
@@ -115,7 +117,7 @@ export default function RegistrarVisita() {
 
   if (isSuccess) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in zoom-in duration-500">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in zoom-in duration-500 w-full">
         <CheckCircle2 className="w-24 h-24 text-green-500 mb-6 animate-pulse" />
         <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-[#1E40AF] text-center">
           Visita Registrada!
@@ -127,7 +129,10 @@ export default function RegistrarVisita() {
           <Button variant="outline" onClick={() => navigate('/')} className="w-full sm:w-auto">
             Ir para Dashboard
           </Button>
-          <Button onClick={resetForm} className="w-full sm:w-auto">
+          <Button
+            onClick={resetForm}
+            className="w-full sm:w-auto bg-[#1E40AF] hover:bg-[#1E40AF]/90"
+          >
             Registrar Nova
           </Button>
         </div>
@@ -136,7 +141,7 @@ export default function RegistrarVisita() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 w-full">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1E40AF]">
           Registrar Visita
@@ -190,7 +195,7 @@ export default function RegistrarVisita() {
                   variant="outline"
                   size="sm"
                   onClick={addItemRow}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto text-[#1E40AF] border-[#1E40AF]/30 hover:bg-[#1E40AF]/10"
                 >
                   <Plus className="w-4 h-4 mr-2" /> Adicionar Venda
                 </Button>

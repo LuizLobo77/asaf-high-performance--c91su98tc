@@ -342,7 +342,11 @@ export default function Vendedores() {
                   required
                 />
               </div>
-              <Button type="submit" variant="secondary" className="w-full sm:w-auto">
+              <Button
+                type="submit"
+                variant="secondary"
+                className="w-full sm:w-auto bg-[#1E40AF] text-white hover:bg-[#1E40AF]/90"
+              >
                 Adicionar Regra
               </Button>
             </form>
