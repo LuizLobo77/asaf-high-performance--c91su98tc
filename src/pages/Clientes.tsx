@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Plus, Edit2, Ban, CheckCircle2, Users, Search } from 'lucide-react'
 import {
   Table,
@@ -45,8 +45,7 @@ const formatCNPJ = (value: string) => {
 }
 
 export default function Clientes() {
-  const { clients, users, currentUser, addClient, updateClient } = useAppStore()
-  const [isLoading, setIsLoading] = useState(true)
+  const { clients, users, currentUser, addClient, updateClient, isClientsLoading } = useAppStore()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -61,11 +60,6 @@ export default function Clientes() {
     city: '',
     sellerId: '',
   })
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800)
-    return () => clearTimeout(timer)
-  }, [])
 
   if (!currentUser) return null
 
@@ -109,13 +103,21 @@ export default function Clientes() {
     setIsModalOpen(true)
   }
 
-  const handleToggleStatus = (client: Client) => {
+  const handleToggleStatus = async (client: Client) => {
     const newStatus = client.status === 'inactive' ? 'active' : 'inactive'
-    updateClient(client.id, { status: newStatus })
-    toast({
-      title: 'Status Atualizado',
-      description: `Cliente ${newStatus === 'active' ? 'ativado' : 'desativado'} com sucesso.`,
-    })
+    try {
+      await updateClient(client.id, { status: newStatus })
+      toast({
+        title: 'Status Atualizado',
+        description: `Cliente ${newStatus === 'active' ? 'ativado' : 'desativado'} com sucesso.`,
+      })
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao atualizar o status do cliente.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const handleSelectAll = (checked: boolean) => {
@@ -133,21 +135,31 @@ export default function Clientes() {
     setSelectedClientIds(newSet)
   }
 
-  const handleBulkAssign = () => {
+  const handleBulkAssign = async () => {
     if (!bulkSellerId) return
-    selectedClientIds.forEach((id) => {
-      updateClient(id, { sellerId: bulkSellerId === 'unassigned' ? '' : bulkSellerId })
-    })
-    toast({
-      title: 'Sucesso',
-      description: `${selectedClientIds.size} clientes atualizados com sucesso.`,
-    })
-    setIsBulkAssignModalOpen(false)
-    setSelectedClientIds(new Set())
-    setBulkSellerId('')
+    try {
+      await Promise.all(
+        Array.from(selectedClientIds).map((id) =>
+          updateClient(id, { sellerId: bulkSellerId === 'unassigned' ? '' : bulkSellerId }),
+        ),
+      )
+      toast({
+        title: 'Sucesso',
+        description: `${selectedClientIds.size} clientes atualizados com sucesso.`,
+      })
+      setIsBulkAssignModalOpen(false)
+      setSelectedClientIds(new Set())
+      setBulkSellerId('')
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao atualizar clientes em lote no banco de dados.',
+        variant: 'destructive',
+      })
+    }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!formData.name || !formData.cnpj || !formData.city) {
@@ -185,29 +197,36 @@ export default function Clientes() {
       return
     }
 
-    if (editingClient) {
-      updateClient(editingClient.id, {
-        name: formData.name,
-        cnpj: formData.cnpj,
-        city: formData.city,
-        region: formData.city,
-        sellerId: finalSellerId,
+    try {
+      if (editingClient) {
+        await updateClient(editingClient.id, {
+          name: formData.name,
+          cnpj: formData.cnpj,
+          city: formData.city,
+          region: formData.city,
+          sellerId: finalSellerId,
+        })
+        toast({ title: 'Sucesso', description: 'Cliente atualizado com sucesso.' })
+      } else {
+        await addClient({
+          id: `c-${Date.now()}`,
+          name: formData.name,
+          cnpj: formData.cnpj,
+          city: formData.city,
+          region: formData.city,
+          status: 'active',
+          sellerId: finalSellerId,
+        })
+        toast({ title: 'Sucesso', description: 'Cliente cadastrado com sucesso.' })
+      }
+      setIsModalOpen(false)
+    } catch (error) {
+      toast({
+        title: 'Erro de Persistência',
+        description: 'Falha ao salvar o cliente no banco de dados.',
+        variant: 'destructive',
       })
-      toast({ title: 'Sucesso', description: 'Cliente atualizado com sucesso.' })
-    } else {
-      addClient({
-        id: `c-${Date.now()}`,
-        name: formData.name,
-        cnpj: formData.cnpj,
-        city: formData.city,
-        region: formData.city,
-        status: 'active',
-        sellerId: finalSellerId,
-      })
-      toast({ title: 'Sucesso', description: 'Cliente cadastrado com sucesso.' })
     }
-
-    setIsModalOpen(false)
   }
 
   return (
@@ -244,7 +263,7 @@ export default function Clientes() {
           <div>
             <CardTitle>Lista de Clientes</CardTitle>
             <CardDescription>
-              Total de {isLoading ? '...' : displayClients.length} clientes na base.
+              Total de {isClientsLoading ? '...' : displayClients.length} clientes na base.
             </CardDescription>
           </div>
           <div className="relative max-w-md w-full">
@@ -285,7 +304,7 @@ export default function Clientes() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isClientsLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
                       {currentUser.role === 'gestor' && (
@@ -422,7 +441,8 @@ export default function Clientes() {
           <DialogHeader>
             <DialogTitle>{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
             <DialogDescription>
-              Preencha os dados abaixo para {editingClient ? 'atualizar' : 'cadastrar'} o cliente.
+              Preencha os dados abaixo para {editingClient ? 'atualizar' : 'cadastrar'} o cliente no
+              banco.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 pt-4">

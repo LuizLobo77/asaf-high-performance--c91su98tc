@@ -181,7 +181,7 @@ export default function ClientImport() {
         const formattedCnpj = formatCNPJ(cnpjStr)
 
         validClients.push({
-          id: `cli-imp-${Date.now()}-${i}`,
+          id: `cli-${Date.now()}-${i}`,
           name,
           city,
           cnpj: formattedCnpj,
@@ -191,7 +191,7 @@ export default function ClientImport() {
         })
       })
 
-      // Optimized Sequential Batch Processing (Chunking) to handle 1000+ records safely
+      // Database insertion process handled in batches
       const batches = []
       for (let i = 0; i < validClients.length; i += 100) {
         batches.push(validClients.slice(i, i + 100))
@@ -199,10 +199,24 @@ export default function ClientImport() {
 
       let importedCount = 0
       for (let i = 0; i < batches.length; i++) {
-        await new Promise((res) => setTimeout(res, 250)) // Wait before processing next batch
-        importClients(batches[i])
-        importedCount += batches[i].length
-        setProgress(Math.round(((i + 1) / batches.length) * 100))
+        try {
+          await importClients(batches[i])
+          importedCount += batches[i].length
+          setProgress(Math.round(((i + 1) / batches.length) * 100))
+        } catch (dbError: any) {
+          errors.push({
+            line: i * 100 + 2,
+            message: `Erro na inserção do banco de dados (Lote ${i + 1}): ${
+              dbError.message || 'Falha de conexão'
+            }`,
+          })
+          toast({
+            title: 'Erro de Persistência',
+            description: 'O processo foi interrompido devido a uma falha no banco de dados.',
+            variant: 'destructive',
+          })
+          break // Halt insertion on database failure
+        }
       }
 
       if (batches.length === 0) setProgress(100)
@@ -260,7 +274,7 @@ export default function ClientImport() {
             {isImporting ? (
               <div className="w-full space-y-4">
                 <div className="text-center font-medium text-[#1E40AF]">
-                  Processando Lotes... {progress}%
+                  Inserindo no Banco de Dados... {progress}%
                 </div>
                 <Progress value={progress} className="w-full h-3" />
               </div>

@@ -1,9 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { mockUsers } from '@/lib/mockData'
 import type { User, Client, Industry, Visit, CommissionRule, IndustryNote } from '@/lib/types'
-import { api, configApi } from '@/lib/api'
+import { api, configApi, clientsDbApi } from '@/lib/api'
 
-// Initialize default administrator into the persistent DB if it's completely empty.
 const initializeDb = () => {
   if (api.get('Vendedores').length === 0) {
     api.postBatch('Vendedores', mockUsers)
@@ -16,6 +15,7 @@ interface AppState {
   currentUser: User | null
   users: User[]
   clients: Client[]
+  isClientsLoading: boolean
   industries: Industry[]
   visits: Visit[]
   commissionRules: CommissionRule[]
@@ -31,10 +31,10 @@ interface AppState {
   forceLogin: (user: User) => void
   addUser: (user: User) => void
   updateUser: (id: string, user: Partial<User>) => void
-  addClient: (client: Client) => void
-  updateClient: (id: string, client: Partial<Client>) => void
-  deleteClient: (id: string) => void
-  importClients: (newClients: Client[]) => void
+  addClient: (client: Client) => Promise<void>
+  updateClient: (id: string, client: Partial<Client>) => Promise<void>
+  deleteClient: (id: string) => Promise<void>
+  importClients: (newClients: Client[]) => Promise<void>
   addVisit: (visit: Visit) => void
   importVisits: (newVisits: Visit[]) => void
   addIndustry: (industry: Industry) => void
@@ -51,13 +51,16 @@ interface AppState {
 const AppContext = createContext<AppState | null>(null)
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  // Loading all core entities from persistent storage matching the accepted database table names
   const [users, setUsers] = useState<User[]>(() => api.get('Vendedores'))
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('asaf_currentUser')
     return saved ? JSON.parse(saved) : null
   })
-  const [clients, setClients] = useState<Client[]>(() => api.get('Clientes'))
+
+  // Clients state is now initialized empty and populated asynchronously from the database API
+  const [clients, setClients] = useState<Client[]>([])
+  const [isClientsLoading, setIsClientsLoading] = useState(true)
+
   const [industries, setIndustries] = useState<Industry[]>(() => api.get('Industrias'))
   const [visits, setVisits] = useState<Visit[]>(() => api.get('Pedidos'))
   const [commissionRules, setCommissionRules] = useState<CommissionRule[]>(() =>
@@ -76,7 +79,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return val || null
   })
 
-  // Listen for storage changes to sync authentication state across tabs and in-app browsers
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'asaf_currentUser') {
@@ -85,6 +87,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
     window.addEventListener('storage', handleStorageChange)
     return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+
+  // Fetch clients asynchronously upon initialization
+  useEffect(() => {
+    clientsDbApi
+      .getAll()
+      .then((data) => setClients(data))
+      .catch((err) => console.error('Failed to fetch clients from database:', err))
+      .finally(() => setIsClientsLoading(false))
   }, [])
 
   const saveCurrentUser = (user: User | null) => {
@@ -143,24 +154,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const addClient = (client: Client) => {
-    api.post('Clientes', client)
+  const addClient = async (client: Client) => {
+    await clientsDbApi.insert(client)
     setClients((prev) => [...prev, client])
   }
 
-  const updateClient = (id: string, partial: Partial<Client>) => {
-    api.put('Clientes', id, partial)
-    setClients((prev) => prev.map((c) => (c.id === id ? { ...c, ...partial } : c)))
+  const updateClient = async (id: string, partial: Partial<Client>) => {
+    const existing = clients.find((c) => c.id === id)
+    if (existing) {
+      const updated = { ...existing, ...partial }
+      await clientsDbApi.update(id, updated)
+      setClients((prev) => prev.map((c) => (c.id === id ? updated : c)))
+    }
   }
 
-  const deleteClient = (id: string) => {
-    api.put('Clientes', id, { status: 'inactive' })
-    setClients((prev) => prev.map((c) => (c.id === id ? { ...c, status: 'inactive' } : c)))
+  const deleteClient = async (id: string) => {
+    const existing = clients.find((c) => c.id === id)
+    if (existing) {
+      const updated = { ...existing, status: 'inactive' as const }
+      await clientsDbApi.update(id, updated)
+      setClients((prev) => prev.map((c) => (c.id === id ? updated : c)))
+    }
   }
 
-  const importClients = (newClients: Client[]) => {
-    api.postBatch('Clientes', newClients)
-    setClients((prev) => [...prev, ...newClients])
+  const importClients = async (newClients: Client[]) => {
+    await clientsDbApi.insertBatch(newClients)
+    setClients((prev) => {
+      const existingIds = new Set(prev.map((c) => c.id))
+      const uniqueNew = newClients.filter((c) => !existingIds.has(c.id))
+      return [...prev, ...uniqueNew]
+    })
   }
 
   const addVisit = (visit: Visit) => {
@@ -222,7 +245,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (!suasVendasApiKey) {
       throw new Error('Configure a API Key primeiro.')
     }
-    // Mock API sync delay
     await new Promise((resolve) => setTimeout(resolve, 1500))
     const now = new Date().toISOString()
     configApi.set('lastSync', now)
@@ -236,6 +258,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         currentUser,
         users,
         clients,
+        isClientsLoading,
         industries,
         visits,
         commissionRules,
