@@ -27,7 +27,7 @@ type FormItem = {
 
 export default function RegistrarVisita() {
   const navigate = useNavigate()
-  const { currentUser, clients, industries, addVisit } = useAppStore()
+  const { currentUser, clients, industries, addVisit, updateClient } = useAppStore()
 
   const [isSuccess, setIsSuccess] = useState(false)
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
@@ -41,7 +41,9 @@ export default function RegistrarVisita() {
 
   const myClients =
     currentUser.role === 'vendedor'
-      ? clients.filter((c) => c.sellerId === currentUser.id && c.status !== 'inactive')
+      ? clients.filter(
+          (c) => (c.sellerId === currentUser.id || !c.sellerId) && c.status !== 'inactive',
+        )
       : clients.filter((c) => c.status !== 'inactive')
 
   const activeIndustries = industries.filter((i) => i.status !== 'inactive')
@@ -95,6 +97,11 @@ export default function RegistrarVisita() {
         value: item.result === 'Venda' ? Number(item.value) : undefined,
       })),
     })
+
+    const selectedClient = clients.find((c) => c.id === clientId)
+    if (selectedClient && !selectedClient.sellerId && currentUser.role === 'vendedor') {
+      updateClient(clientId, { sellerId: currentUser.id })
+    }
 
     setIsSuccess(true)
   }
@@ -162,7 +169,7 @@ export default function RegistrarVisita() {
                   <SelectContent>
                     {myClients.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.name}
+                        {c.name} {!c.sellerId ? '(Carteira Livre)' : ''}
                       </SelectItem>
                     ))}
                     {myClients.length === 0 && (

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Edit2, Ban, CheckCircle2 } from 'lucide-react'
+import { Plus, Edit2, Ban, CheckCircle2, Users } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -28,6 +28,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from '@/hooks/use-toast'
 import useAppStore from '@/stores/useAppStore'
 import { Client } from '@/lib/types'
@@ -47,6 +48,10 @@ export default function Clientes() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
 
+  const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set())
+  const [isBulkAssignModalOpen, setIsBulkAssignModalOpen] = useState(false)
+  const [bulkSellerId, setBulkSellerId] = useState('')
+
   const [formData, setFormData] = useState({
     name: '',
     cnpj: '',
@@ -57,7 +62,9 @@ export default function Clientes() {
   if (!currentUser) return null
 
   const displayClients =
-    currentUser.role === 'gestor' ? clients : clients.filter((c) => c.sellerId === currentUser.id)
+    currentUser.role === 'gestor'
+      ? clients
+      : clients.filter((c) => c.sellerId === currentUser.id || !c.sellerId)
 
   const sellers = users.filter((u) => u.role === 'vendedor')
 
@@ -70,7 +77,7 @@ export default function Clientes() {
         name: client.name,
         cnpj: client.cnpj || '',
         city: client.city || '',
-        sellerId: client.sellerId,
+        sellerId: client.sellerId || 'unassigned',
       })
     } else {
       setEditingClient(null)
@@ -78,7 +85,7 @@ export default function Clientes() {
         name: '',
         cnpj: '',
         city: '',
-        sellerId: currentUser.role === 'vendedor' ? currentUser.id : '',
+        sellerId: currentUser.role === 'vendedor' ? currentUser.id : 'unassigned',
       })
     }
     setIsModalOpen(true)
@@ -91,6 +98,35 @@ export default function Clientes() {
       title: 'Status Atualizado',
       description: `Cliente ${newStatus === 'active' ? 'ativado' : 'desativado'} com sucesso.`,
     })
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedClientIds(new Set(displayClients.map((c) => c.id)))
+    } else {
+      setSelectedClientIds(new Set())
+    }
+  }
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    const newSet = new Set(selectedClientIds)
+    if (checked) newSet.add(id)
+    else newSet.delete(id)
+    setSelectedClientIds(newSet)
+  }
+
+  const handleBulkAssign = () => {
+    if (!bulkSellerId) return
+    selectedClientIds.forEach((id) => {
+      updateClient(id, { sellerId: bulkSellerId })
+    })
+    toast({
+      title: 'Sucesso',
+      description: `${selectedClientIds.size} clientes atribuídos com sucesso.`,
+    })
+    setIsBulkAssignModalOpen(false)
+    setSelectedClientIds(new Set())
+    setBulkSellerId('')
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -114,16 +150,12 @@ export default function Clientes() {
       return
     }
 
-    const sellerId = currentUser.role === 'gestor' ? formData.sellerId : currentUser.id
-
-    if (!sellerId) {
-      toast({
-        title: 'Atenção',
-        description: 'Selecione um vendedor responsável.',
-        variant: 'destructive',
-      })
-      return
-    }
+    const finalSellerId =
+      currentUser.role === 'gestor'
+        ? formData.sellerId === 'unassigned'
+          ? ''
+          : formData.sellerId
+        : currentUser.id
 
     const isDuplicate = clients.some((c) => c.cnpj === formData.cnpj && c.id !== editingClient?.id)
     if (isDuplicate) {
@@ -141,7 +173,7 @@ export default function Clientes() {
         cnpj: formData.cnpj,
         city: formData.city,
         region: formData.city,
-        sellerId: sellerId,
+        sellerId: finalSellerId,
       })
       toast({ title: 'Sucesso', description: 'Cliente atualizado com sucesso.' })
     } else {
@@ -152,7 +184,7 @@ export default function Clientes() {
         city: formData.city,
         region: formData.city,
         status: 'active',
-        sellerId: sellerId,
+        sellerId: finalSellerId,
       })
       toast({ title: 'Sucesso', description: 'Cliente cadastrado com sucesso.' })
     }
@@ -169,7 +201,17 @@ export default function Clientes() {
             Gestão da carteira de clientes cadastrados.
           </p>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          {currentUser.role === 'gestor' && selectedClientIds.size > 0 && (
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto text-[#1E40AF] border-[#1E40AF] hover:bg-[#1E40AF]/10"
+              onClick={() => setIsBulkAssignModalOpen(true)}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Atribuir Vendedor ({selectedClientIds.size})
+            </Button>
+          )}
           <Button
             onClick={() => openModal()}
             className="w-full sm:w-auto bg-[#1E40AF] hover:bg-[#1E40AF]/90"
@@ -188,6 +230,18 @@ export default function Clientes() {
           <Table>
             <TableHeader>
               <TableRow>
+                {currentUser.role === 'gestor' && (
+                  <TableHead className="w-[40px] px-4">
+                    <Checkbox
+                      checked={
+                        displayClients.length > 0 &&
+                        selectedClientIds.size === displayClients.length
+                      }
+                      onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                      aria-label="Selecionar todos"
+                    />
+                  </TableHead>
+                )}
                 <TableHead>Razão Social</TableHead>
                 <TableHead>CNPJ</TableHead>
                 <TableHead>Cidade</TableHead>
@@ -199,12 +253,37 @@ export default function Clientes() {
             <TableBody>
               {displayClients.map((client) => (
                 <TableRow key={client.id}>
-                  <TableCell className="font-medium min-w-[150px]">{client.name}</TableCell>
+                  {currentUser.role === 'gestor' && (
+                    <TableCell className="px-4">
+                      <Checkbox
+                        checked={selectedClientIds.has(client.id)}
+                        onCheckedChange={(checked) => handleSelectOne(client.id, !!checked)}
+                        aria-label={`Selecionar ${client.name}`}
+                      />
+                    </TableCell>
+                  )}
+                  <TableCell className="font-medium min-w-[150px]">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <span>{client.name}</span>
+                      {!client.sellerId && (
+                        <Badge
+                          variant="outline"
+                          className="w-fit text-amber-600 border-amber-500/50 bg-amber-50 dark:bg-amber-950/50 dark:text-amber-400 text-[10px] px-1.5 py-0 h-5"
+                        >
+                          Carteira Livre
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="min-w-[160px]">{client.cnpj || 'N/A'}</TableCell>
                   <TableCell className="min-w-[120px]">{client.city || client.region}</TableCell>
                   {currentUser.role === 'gestor' && (
                     <TableCell className="text-muted-foreground min-w-[150px]">
-                      {getSellerName(client.sellerId)}
+                      {client.sellerId ? (
+                        getSellerName(client.sellerId)
+                      ) : (
+                        <span className="text-amber-600 font-medium">Sem Dono</span>
+                      )}
                     </TableCell>
                   )}
                   <TableCell>
@@ -251,7 +330,7 @@ export default function Clientes() {
               {displayClients.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={currentUser.role === 'gestor' ? 6 : 5}
+                    colSpan={currentUser.role === 'gestor' ? 7 : 5}
                     className="text-center text-muted-foreground py-8"
                   >
                     Nenhum cliente encontrado.
@@ -305,7 +384,7 @@ export default function Clientes() {
             </div>
             {currentUser.role === 'gestor' && (
               <div className="space-y-2">
-                <Label htmlFor="sellerId">Vendedor Responsável *</Label>
+                <Label htmlFor="sellerId">Vendedor Responsável</Label>
                 <Select
                   value={formData.sellerId}
                   onValueChange={(val) => setFormData({ ...formData, sellerId: val })}
@@ -314,6 +393,7 @@ export default function Clientes() {
                     <SelectValue placeholder="Selecione um vendedor" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="unassigned">Nenhum (Carteira Livre)</SelectItem>
                     {sellers.map((seller) => (
                       <SelectItem key={seller.id} value={seller.id}>
                         {seller.name}
@@ -337,6 +417,52 @@ export default function Clientes() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isBulkAssignModalOpen} onOpenChange={setIsBulkAssignModalOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-[425px] rounded-lg">
+          <DialogHeader>
+            <DialogTitle>Atribuir Vendedor</DialogTitle>
+            <DialogDescription>
+              Selecione o vendedor para assumir os {selectedClientIds.size} clientes selecionados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="bulkSellerId">Vendedor</Label>
+              <Select value={bulkSellerId} onValueChange={setBulkSellerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um vendedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sellers.map((seller) => (
+                    <SelectItem key={seller.id} value={seller.id}>
+                      {seller.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsBulkAssignModalOpen(false)}
+                className="w-full sm:w-auto"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleBulkAssign}
+                className="w-full sm:w-auto bg-[#1E40AF] hover:bg-[#1E40AF]/90"
+                disabled={!bulkSellerId}
+              >
+                Confirmar
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
