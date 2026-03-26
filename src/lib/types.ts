@@ -40,6 +40,7 @@ export interface VisitItem {
   industryId: string
   result: VisitResult
   value?: number
+  commissionSnapshot?: number // Saved as a static snapshot at the time of order creation
 }
 
 export interface Visit {

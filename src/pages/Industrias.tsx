@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Building2, Plus, Trash2 } from 'lucide-react'
+import { Building2, Plus, Trash2, Pencil } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -23,12 +23,15 @@ import {
 } from '@/components/ui/dialog'
 import useAppStore from '@/stores/useAppStore'
 import { toast } from '@/hooks/use-toast'
+import type { Industry } from '@/lib/types'
+import { EditIndustryDialog } from '@/components/industries/EditIndustryDialog'
 
 export default function Industrias() {
   const { currentUser, industries, addIndustry, deleteIndustry, updateIndustry } = useAppStore()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [commission, setCommission] = useState('')
+  const [editingIndustry, setEditingIndustry] = useState<Industry | null>(null)
 
   if (!currentUser) return null
 
@@ -54,7 +57,7 @@ export default function Industrias() {
   }
 
   const handleDeactivate = (id: string) => {
-    deleteIndustry(id) // Logical Delete
+    deleteIndustry(id)
     toast({ title: 'Indústria desativada.', description: 'Ela não aparecerá em novos registros.' })
   }
 
@@ -95,7 +98,7 @@ export default function Industrias() {
                 <Input
                   id="commission"
                   type="number"
-                  step="0.1"
+                  step="0.01"
                   min="0"
                   max="100"
                   value={commission}
@@ -126,7 +129,7 @@ export default function Industrias() {
                 <TableHead>Nome</TableHead>
                 <TableHead className="text-right">Comissão Padrão (%)</TableHead>
                 <TableHead className="text-center">Status</TableHead>
-                <TableHead className="w-[100px] text-right">Ações</TableHead>
+                <TableHead className="w-[120px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -137,7 +140,7 @@ export default function Industrias() {
                 >
                   <TableCell className="font-medium">{ind.name}</TableCell>
                   <TableCell className="text-right">
-                    {(ind.commissionPercent * 100).toFixed(1)}%
+                    {(ind.commissionPercent * 100).toFixed(2)}%
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge
@@ -147,7 +150,15 @@ export default function Industrias() {
                       {ind.status === 'inactive' ? 'Inativa' : 'Ativa'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setEditingIndustry(ind)}
+                      title="Editar"
+                    >
+                      <Pencil className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                    </Button>
                     {ind.status !== 'inactive' ? (
                       <Button
                         variant="ghost"
@@ -182,6 +193,8 @@ export default function Industrias() {
           </Table>
         </CardContent>
       </Card>
+
+      <EditIndustryDialog industry={editingIndustry} onClose={() => setEditingIndustry(null)} />
     </div>
   )
 }
