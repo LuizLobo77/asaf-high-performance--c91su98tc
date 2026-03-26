@@ -6,6 +6,22 @@ import { toast } from '@/hooks/use-toast'
 import useAppStore from '@/stores/useAppStore'
 import { VisitResult, Visit } from '@/lib/types'
 
+function parseCSVLine(text: string, separator: string = ',') {
+  const result = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]
+    if (char === '"') inQuotes = !inQuotes
+    else if (char === separator && !inQuotes) {
+      result.push(current)
+      current = ''
+    } else current += char
+  }
+  result.push(current)
+  return result.map((s) => s.trim().replace(/^"|"$/g, ''))
+}
+
 export default function VisitImport() {
   const { importVisits, users, clients, industries } = useAppStore()
   const [isDragging, setIsDragging] = useState(false)
@@ -20,19 +36,34 @@ export default function VisitImport() {
       return
     }
 
+    if (file.size > 8 * 1024 * 1024) {
+      toast({
+        title: 'Erro',
+        description: 'O arquivo excede o limite de 8MB.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     const reader = new FileReader()
     reader.onload = (e) => {
       try {
         const text = e.target?.result as string
-        const lines = text.split('\n').filter((l) => l.trim())
+        const lines = text.split(/\r?\n/).filter((l) => l.trim())
         if (lines.length < 2) throw new Error('Arquivo vazio ou sem dados.')
 
+        const separator = lines[0].includes(';') ? ';' : ','
         const groupedVisits: Record<string, Visit> = {}
 
         lines.slice(1).forEach((line, i) => {
-          const [date, sellerId, clientId, result, value, industryId, extId] = line
-            .split(',')
-            .map((s) => s.trim())
+          const cols = parseCSVLine(line, separator)
+          const date = cols[0]
+          const sellerId = cols[1]
+          const clientId = cols[2]
+          const result = cols[3]
+          const value = cols[4]
+          const industryId = cols[5]
+          const extId = cols[6]
 
           const visitKey = extId || `no-ext-${date}-${sellerId}-${clientId}`
 
@@ -78,7 +109,7 @@ export default function VisitImport() {
       <CardHeader>
         <CardTitle className="text-[#1E40AF]">Upload de Visitas</CardTitle>
         <CardDescription className="text-[#6B7280]">
-          O sistema agrupará automaticamente itens com o mesmo ID_Pedido na mesma visita.
+          O sistema agrupará automaticamente itens com o mesmo ID_Pedido na mesma visita (Max 8MB).
         </CardDescription>
       </CardHeader>
       <CardContent>

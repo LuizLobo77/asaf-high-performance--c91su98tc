@@ -19,14 +19,14 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 type ImportError = { line: number; message: string }
 type ImportReport = { total: number; success: number; failed: number; errors: ImportError[] }
 
-function parseCSVLine(text: string) {
+function parseCSVLine(text: string, separator: string = ',') {
   const result = []
   let current = ''
   let inQuotes = false
   for (let i = 0; i < text.length; i++) {
     const char = text[i]
     if (char === '"') inQuotes = !inQuotes
-    else if (char === ',' && !inQuotes) {
+    else if (char === separator && !inQuotes) {
       result.push(current)
       current = ''
     } else current += char
@@ -51,6 +51,15 @@ export default function ClientImport() {
         variant: 'destructive',
       })
     }
+
+    if (file.size > 8 * 1024 * 1024) {
+      return toast({
+        title: 'Erro',
+        description: 'O arquivo excede o limite de 8MB.',
+        variant: 'destructive',
+      })
+    }
+
     setIsImporting(true)
     setProgress(0)
     setReport(null)
@@ -58,18 +67,20 @@ export default function ClientImport() {
     try {
       const text = await file.text()
       const lines = text
-        .split('\n')
+        .split(/\r?\n/)
         .map((l) => l.trim())
         .filter(Boolean)
-      if (lines.length < 2) throw new Error('Arquivo vazio.')
 
+      if (lines.length < 2) throw new Error('Arquivo vazio ou sem registros.')
+
+      const separator = lines[0].includes(';') ? ';' : ','
       const errors: ImportError[] = []
       const validClients: Client[] = []
       const existingCnpjs = new Set(clients.map((c) => c.cnpj?.replace(/\D/g, '')).filter(Boolean))
 
       lines.slice(1).forEach((line, i) => {
         const lineNum = i + 2
-        const cols = parseCSVLine(line)
+        const cols = parseCSVLine(line, separator)
         const name = cols[0]
         const city = cols[1] || ''
         const cnpjRaw = cols[2] || ''
@@ -77,7 +88,7 @@ export default function ClientImport() {
         if (!name) {
           return errors.push({
             line: lineNum,
-            message: 'Corporate Name (Razao_Social) cannot be blank',
+            message: 'Razão Social não pode ficar em branco',
           })
         }
 
@@ -85,13 +96,14 @@ export default function ClientImport() {
         if (cnpjRaw) {
           cnpj = cnpjRaw.replace(/\D/g, '')
           if (cnpj.length !== 14 && cnpj.length > 0) {
-            return errors.push({ line: lineNum, message: 'CNPJ invalid' })
+            return errors.push({ line: lineNum, message: 'Formato de CNPJ inválido' })
           }
           if (cnpj.length === 14) {
             if (existingCnpjs.has(cnpj)) {
-              return errors.push({ line: lineNum, message: 'CNPJ already exists in the system' })
+              return errors.push({ line: lineNum, message: 'CNPJ já existe no sistema' })
             }
             existingCnpjs.add(cnpj)
+            cnpj = cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
           }
         }
 
@@ -113,7 +125,7 @@ export default function ClientImport() {
 
       let importedCount = 0
       for (let i = 0; i < batches.length; i++) {
-        await new Promise((res) => setTimeout(res, 250))
+        await new Promise((res) => setTimeout(res, 100))
         importClients(batches[i])
         importedCount += batches[i].length
         setProgress(Math.round(((i + 1) / batches.length) * 100))
@@ -150,7 +162,7 @@ export default function ClientImport() {
         <CardHeader>
           <CardTitle className="text-[#1E40AF]">Upload de Clientes</CardTitle>
           <CardDescription>
-            Suporta grandes volumes de dados (lotes de 100 registros).
+            Suporta grandes volumes de dados (limite de 8MB, lotes de 100 registros).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -188,7 +200,7 @@ export default function ClientImport() {
                   Arraste seu CSV de Clientes
                 </h3>
                 <p className="text-sm text-[#6B7280] mb-4 text-center">
-                  ou clique para procurar no computador
+                  ou clique para procurar no computador (Max 8MB)
                 </p>
                 <Button variant="outline" className="pointer-events-none">
                   Selecionar Arquivo
