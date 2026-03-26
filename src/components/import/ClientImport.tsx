@@ -16,6 +16,16 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
+const formatCNPJ = (value: string) => {
+  return value
+    .replace(/\D/g, '')
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2')
+    .substring(0, 18)
+}
+
 type ImportError = { line: number; message: string }
 type ImportReport = { total: number; success: number; failed: number; errors: ImportError[] }
 
@@ -44,10 +54,10 @@ export default function ClientImport() {
   const [isReportOpen, setIsReportOpen] = useState(false)
 
   const processFile = async (file: File) => {
-    if (!file.name.endsWith('.csv')) {
+    if (!file.name.match(/\.(csv|xlsx)$/i)) {
       return toast({
         title: 'Erro',
-        description: 'Envie apenas arquivos CSV.',
+        description: 'Envie apenas arquivos .csv ou .xlsx.',
         variant: 'destructive',
       })
     }
@@ -69,55 +79,69 @@ export default function ClientImport() {
       const lines = text
         .split(/\r?\n/)
         .map((l) => l.trim())
-        .filter(Boolean)
+        .filter((l) => l.length > 0)
 
-      if (lines.length < 2) throw new Error('Arquivo vazio ou sem registros.')
+      if (lines.length < 2) throw new Error('Arquivo vazio ou sem registros válidos.')
 
       const separator = lines[0].includes(';') ? ';' : ','
       const errors: ImportError[] = []
       const validClients: Client[] = []
       const existingCnpjs = new Set(clients.map((c) => c.cnpj?.replace(/\D/g, '')).filter(Boolean))
+      const fileCnpjs = new Set<string>()
+
+      let totalLido = 0
 
       lines.slice(1).forEach((line, i) => {
-        const lineNum = i + 2
+        const lineNum = i + 2 // line 1 is header
         const cols = parseCSVLine(line, separator)
         const name = cols[0]
-        const city = cols[1] || ''
-        const cnpjRaw = cols[2] || ''
+        const cnpjRaw = cols[1] || ''
+        const city = cols[2] || ''
+
+        if (!name && !cnpjRaw && !city) return
+        totalLido++
 
         if (!name) {
           return errors.push({
             line: lineNum,
-            message: 'Razão Social não pode ficar em branco',
+            message: 'Razão_Social não pode ficar em branco',
           })
         }
 
-        let cnpj = ''
-        if (cnpjRaw) {
-          cnpj = cnpjRaw.replace(/\D/g, '')
-          if (cnpj.length !== 14 && cnpj.length > 0) {
-            return errors.push({ line: lineNum, message: 'Formato de CNPJ inválido' })
-          }
-          if (cnpj.length === 14) {
-            if (existingCnpjs.has(cnpj)) {
-              return errors.push({ line: lineNum, message: 'CNPJ já existe no sistema' })
-            }
-            existingCnpjs.add(cnpj)
-            cnpj = cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
-          }
+        let cnpjStr = cnpjRaw.replace(/\D/g, '')
+        if (!cnpjStr) {
+          return errors.push({ line: lineNum, message: 'CNPJ é obrigatório' })
         }
+
+        if (cnpjStr.length !== 14) {
+          return errors.push({
+            line: lineNum,
+            message: 'Formato de CNPJ inválido (deve conter 14 dígitos)',
+          })
+        }
+
+        if (existingCnpjs.has(cnpjStr) || fileCnpjs.has(cnpjStr)) {
+          return errors.push({
+            line: lineNum,
+            message: 'CNPJ já existe no banco ou está duplicado no arquivo',
+          })
+        }
+
+        fileCnpjs.add(cnpjStr)
+        const formattedCnpj = formatCNPJ(cnpjStr)
 
         validClients.push({
           id: `cli-imp-${Date.now()}-${i}`,
           name,
           city,
-          cnpj,
-          region: 'Geral',
+          cnpj: formattedCnpj,
+          region: city || 'Geral',
           status: 'active',
           sellerId: currentUser?.id || 'sys',
         })
       })
 
+      // Optimized Batch Processing (Chunking)
       const batches = []
       for (let i = 0; i < validClients.length; i += 100) {
         batches.push(validClients.slice(i, i + 100))
@@ -125,7 +149,7 @@ export default function ClientImport() {
 
       let importedCount = 0
       for (let i = 0; i < batches.length; i++) {
-        await new Promise((res) => setTimeout(res, 100))
+        await new Promise((res) => setTimeout(res, 200)) // ensure sequential delay
         importClients(batches[i])
         importedCount += batches[i].length
         setProgress(Math.round(((i + 1) / batches.length) * 100))
@@ -133,12 +157,12 @@ export default function ClientImport() {
 
       if (batches.length === 0) setProgress(100)
 
-      setReport({ total: lines.length - 1, success: importedCount, failed: errors.length, errors })
+      setReport({ total: totalLido, success: importedCount, failed: errors.length, errors })
       setIsReportOpen(true)
     } catch (err) {
       toast({
-        title: 'Erro',
-        description: 'Falha ao processar o arquivo.',
+        title: 'Erro na leitura do arquivo',
+        description: 'Certifique-se de que é um CSV válido com a formatação correta.',
         variant: 'destructive',
       })
     } finally {
@@ -147,7 +171,7 @@ export default function ClientImport() {
   }
 
   const downloadTemplate = () => {
-    const blob = new Blob(['Razão Social,Cidade,CNPJ\n'], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob(['Razao_Social,CNPJ,Cidade\n'], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
     link.download = 'template_clientes.csv'
@@ -162,7 +186,7 @@ export default function ClientImport() {
         <CardHeader>
           <CardTitle className="text-[#1E40AF]">Upload de Clientes</CardTitle>
           <CardDescription>
-            Suporta grandes volumes de dados (limite de 8MB, lotes de 100 registros).
+            Importação em lote suportando arquivos grandes (limite de 8MB).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -197,10 +221,10 @@ export default function ClientImport() {
                   }`}
                 />
                 <h3 className="text-lg font-semibold text-[#1E40AF] mb-1">
-                  Arraste seu CSV de Clientes
+                  Arraste sua planilha aqui
                 </h3>
                 <p className="text-sm text-[#6B7280] mb-4 text-center">
-                  ou clique para procurar no computador (Max 8MB)
+                  ou clique para procurar no computador (.csv, .xlsx)
                 </p>
                 <Button variant="outline" className="pointer-events-none">
                   Selecionar Arquivo
@@ -211,7 +235,7 @@ export default function ClientImport() {
               type="file"
               id="csv-upload-client"
               className="hidden"
-              accept=".csv"
+              accept=".csv,.xlsx"
               disabled={isImporting}
               onChange={(e) => {
                 if (e.target.files?.[0]) processFile(e.target.files[0])
@@ -225,22 +249,22 @@ export default function ClientImport() {
       <Card className="border-border/50 h-fit">
         <CardHeader>
           <CardTitle className="text-[#1E40AF]">Download de Template</CardTitle>
-          <CardDescription>Baixe a planilha padrão para importação.</CardDescription>
+          <CardDescription>Baixe a planilha modelo para evitar erros.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-border rounded-xl bg-muted/10 text-center space-y-4 hover:bg-muted/30 transition-colors">
             <DownloadCloud className="w-16 h-16 text-[#6B7280]" />
             <div>
-              <h3 className="text-lg font-semibold text-[#1E40AF]">Template de Clientes</h3>
+              <h3 className="text-lg font-semibold text-[#1E40AF]">Planilha Modelo</h3>
               <p className="text-sm text-[#6B7280] mt-1 mb-4">
-                Colunas: Razão Social, Cidade e CNPJ
+                Cabeçalhos estritos: Razao_Social, CNPJ, Cidade
               </p>
             </div>
             <Button
               onClick={downloadTemplate}
               className="w-full max-w-xs bg-[#1E40AF] hover:bg-[#1E40AF]/90 text-white shadow-md transition-all hover:shadow-lg"
             >
-              Baixar Planilha Padrão
+              Baixar Planilha Modelo
             </Button>
           </div>
         </CardContent>
@@ -250,18 +274,20 @@ export default function ClientImport() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Relatório de Importação</DialogTitle>
-            <DialogDescription>Resumo do processamento do arquivo de clientes.</DialogDescription>
+            <DialogDescription>
+              Resumo da auditoria de processamento do arquivo de clientes.
+            </DialogDescription>
           </DialogHeader>
           {report && (
             <div className="space-y-6">
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="bg-muted p-4 rounded-lg">
                   <div className="text-2xl font-bold">{report.total}</div>
-                  <div className="text-sm text-muted-foreground">Total Lido</div>
+                  <div className="text-sm text-muted-foreground">Total lido</div>
                 </div>
                 <div className="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200">
                   <div className="text-2xl font-bold">{report.success}</div>
-                  <div className="text-sm">Sucesso</div>
+                  <div className="text-sm">Importados com sucesso</div>
                 </div>
                 <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200">
                   <div className="text-2xl font-bold">{report.failed}</div>
@@ -271,7 +297,7 @@ export default function ClientImport() {
               {report.errors.length > 0 && (
                 <div>
                   <h4 className="font-semibold mb-2 flex items-center gap-2 text-destructive">
-                    <AlertCircle className="w-4 h-4" /> Detalhes das Falhas
+                    <AlertCircle className="w-4 h-4" /> Log de Erros
                   </h4>
                   <ScrollArea className="h-[200px] w-full rounded-md border p-4">
                     <ul className="space-y-2">

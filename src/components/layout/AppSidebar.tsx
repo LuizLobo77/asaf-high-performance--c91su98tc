@@ -109,8 +109,8 @@ export function AppSidebar() {
           )}
           {isManager && (
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={location.pathname === '/importar'}>
-                <Link to="/importar">
+              <SidebarMenuButton asChild isActive={location.pathname === '/importar-dados'}>
+                <Link to="/importar-dados">
                   <Upload className="w-5 h-5" /> <span>Importar Dados</span>
                 </Link>
               </SidebarMenuButton>
