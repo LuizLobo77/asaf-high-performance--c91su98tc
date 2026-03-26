@@ -4,6 +4,8 @@ import { StatCard } from './StatCard'
 import { ManagerTargetChart } from '@/components/charts/ManagerTargetChart'
 import { ManagerIndustryChart } from '@/components/charts/ManagerIndustryChart'
 import { TrendChart } from '@/components/charts/TrendChart'
+import { ManagerIndustryRankingChart } from '@/components/charts/ManagerIndustryRankingChart'
+import { ClientPurchaseAnalysis } from '@/components/dashboard/ClientPurchaseAnalysis'
 
 export function ManagerDashboard() {
   const metrics = useDashboardMetrics()
@@ -37,6 +39,11 @@ export function ManagerDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ManagerTargetChart data={metrics.sellerPerformance} />
         <ManagerIndustryChart data={metrics.industryData} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ManagerIndustryRankingChart data={metrics.industryData} />
+        <ClientPurchaseAnalysis data={metrics.clientsLastPurchase} />
       </div>
 
       <div className="grid grid-cols-1 gap-6">

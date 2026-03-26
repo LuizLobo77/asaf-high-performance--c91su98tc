@@ -4,7 +4,7 @@ import { format, parseISO, subDays, isAfter } from 'date-fns'
 import type { Visit } from '@/lib/types'
 
 export function useDashboardMetrics(userId?: string) {
-  const { visits, users, industries } = useAppStore()
+  const { visits, users, industries, clients } = useAppStore()
 
   return useMemo(() => {
     const relevantVisits = userId ? visits.filter((v) => v.sellerId === userId) : visits
@@ -77,6 +77,36 @@ export function useDashboardMetrics(userId?: string) {
       return { date: format(date, 'dd/MM'), sales: daySales }
     })
 
+    const clientsLastPurchase = clients
+      .map((client) => {
+        const clientVisits = relevantVisits.filter(
+          (v) => v.clientId === client.id && v.items.some((i) => i.result === 'Venda'),
+        )
+        const sortedVisits = clientVisits.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        )
+        const lastVisit = sortedVisits[0]
+        const lastPurchaseDate = lastVisit ? parseISO(lastVisit.date) : null
+        const daysSince = lastPurchaseDate
+          ? Math.floor((new Date().getTime() - lastPurchaseDate.getTime()) / (1000 * 3600 * 24))
+          : Infinity
+
+        return {
+          id: client.id,
+          name: client.name,
+          lastPurchaseDate: lastPurchaseDate
+            ? format(lastPurchaseDate, 'dd/MM/yyyy')
+            : 'Sem compras',
+          daysSince,
+          needsAttention: daysSince > 30,
+        }
+      })
+      .sort((a, b) => {
+        if (a.daysSince === Infinity) return 1
+        if (b.daysSince === Infinity) return -1
+        return b.daysSince - a.daysSince
+      })
+
     return {
       totalSalesValue,
       totalCommission,
@@ -86,8 +116,9 @@ export function useDashboardMetrics(userId?: string) {
       sellerPerformance,
       industryData,
       trendData,
+      clientsLastPurchase,
       recentVisitsList: relevantVisits.slice(0, 5),
       getVisitTotal,
     }
-  }, [visits, userId, users, industries])
+  }, [visits, userId, users, industries, clients])
 }
