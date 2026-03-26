@@ -91,7 +91,7 @@ export default function Industrias() {
                 <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="commission">Comissão Padrão (%)</Label>
+                <Label htmlFor="commission">Percentual de Comissão Padrão (%)</Label>
                 <Input
                   id="commission"
                   type="number"
@@ -100,6 +100,7 @@ export default function Industrias() {
                   max="100"
                   value={commission}
                   onChange={(e) => setCommission(e.target.value)}
+                  placeholder="Ex: 5"
                   required
                 />
               </div>
@@ -123,7 +124,7 @@ export default function Industrias() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead className="text-right">Comissão (%)</TableHead>
+                <TableHead className="text-right">Comissão Padrão (%)</TableHead>
                 <TableHead className="w-[100px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>

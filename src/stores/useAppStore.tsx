@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react'
-import { mockUsers, mockClients, mockIndustries, mockVisits } from '@/lib/mockData'
-import type { User, Client, Industry, Visit } from '@/lib/types'
+import {
+  mockUsers,
+  mockClients,
+  mockIndustries,
+  mockVisits,
+  mockCommissionRules,
+} from '@/lib/mockData'
+import type { User, Client, Industry, Visit, CommissionRule } from '@/lib/types'
 
 interface AppState {
   currentUser: User
@@ -8,14 +14,19 @@ interface AppState {
   clients: Client[]
   industries: Industry[]
   visits: Visit[]
+  commissionRules: CommissionRule[]
   logoUrl: string
   suasVendasApiKey: string
   lastSync: string | null
   setCurrentUser: (id: string) => void
+  addUser: (user: User) => void
+  updateUser: (id: string, user: Partial<User>) => void
   addVisit: (visit: Visit) => void
   importVisits: (newVisits: Visit[]) => void
   addIndustry: (industry: Industry) => void
   deleteIndustry: (id: string) => void
+  setCommissionRule: (rule: CommissionRule) => void
+  deleteCommissionRule: (id: string) => void
   setLogoUrl: (url: string) => void
   setSuasVendasApiKey: (key: string) => void
   syncSuasVendas: () => Promise<void>
@@ -24,11 +35,12 @@ interface AppState {
 const AppContext = createContext<AppState | null>(null)
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [users] = useState<User[]>(mockUsers)
+  const [users, setUsers] = useState<User[]>(mockUsers)
   const [currentUser, setCurrentUser] = useState<User>(mockUsers[0]) // Starts as Gestor
   const [clients] = useState<Client[]>(mockClients)
   const [industries, setIndustries] = useState<Industry[]>(mockIndustries)
   const [visits, setVisits] = useState<Visit[]>(mockVisits)
+  const [commissionRules, setCommissionRules] = useState<CommissionRule[]>(mockCommissionRules)
   const [logoUrl, setLogoUrl] = useState<string>('')
   const [suasVendasApiKey, setSuasVendasApiKey] = useState<string>('')
   const [lastSync, setLastSync] = useState<string | null>(null)
@@ -36,6 +48,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const handleSetCurrentUser = (id: string) => {
     const user = users.find((u) => u.id === id)
     if (user) setCurrentUser(user)
+  }
+
+  const addUser = (user: User) => setUsers((prev) => [...prev, user])
+
+  const updateUser = (id: string, partial: Partial<User>) => {
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...partial } : u)))
+    if (currentUser.id === id) {
+      setCurrentUser((prev) => ({ ...prev, ...partial }))
+    }
   }
 
   const addVisit = (visit: Visit) => setVisits((prev) => [visit, ...prev])
@@ -51,6 +72,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const addIndustry = (industry: Industry) => setIndustries((prev) => [...prev, industry])
 
   const deleteIndustry = (id: string) => setIndustries((prev) => prev.filter((i) => i.id !== id))
+
+  const setCommissionRule = (rule: CommissionRule) => {
+    setCommissionRules((prev) => {
+      const exists = prev.find((r) => r.id === rule.id)
+      if (exists) return prev.map((r) => (r.id === rule.id ? rule : r))
+      return [...prev, rule]
+    })
+  }
+
+  const deleteCommissionRule = (id: string) => {
+    setCommissionRules((prev) => prev.filter((r) => r.id !== id))
+  }
 
   const syncSuasVendas = async () => {
     if (!suasVendasApiKey) {
@@ -81,14 +114,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         clients,
         industries,
         visits,
+        commissionRules,
         logoUrl,
         suasVendasApiKey,
         lastSync,
         setCurrentUser: handleSetCurrentUser,
+        addUser,
+        updateUser,
         addVisit,
         importVisits,
         addIndustry,
         deleteIndustry,
+        setCommissionRule,
+        deleteCommissionRule,
         setLogoUrl,
         setSuasVendasApiKey,
         syncSuasVendas,

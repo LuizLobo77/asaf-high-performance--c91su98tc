@@ -1,11 +1,43 @@
 import { subDays, formatISO } from 'date-fns'
-import type { User, Client, Industry, Visit, VisitItem, VisitResult } from './types'
+import type { User, Client, Industry, Visit, VisitItem, VisitResult, CommissionRule } from './types'
 
 export const mockUsers: User[] = [
-  { id: 'u1', name: 'Carlos Gestor', email: 'carlos@asaf.com', role: 'gestor', target: 0 },
-  { id: 'u2', name: 'Ana Vendedora', email: 'ana@asaf.com', role: 'vendedor', target: 150000 },
-  { id: 'u3', name: 'João Silva', email: 'joao@asaf.com', role: 'vendedor', target: 120000 },
-  { id: 'u4', name: 'Marcos Santos', email: 'marcos@asaf.com', role: 'vendedor', target: 100000 },
+  {
+    id: 'u1',
+    name: 'Carlos Gestor',
+    email: 'carlos@asaf.com',
+    role: 'gestor',
+    target: 0,
+    status: 'active',
+    phone: '(11) 99999-0000',
+  },
+  {
+    id: 'u2',
+    name: 'Ana Vendedora',
+    email: 'ana@asaf.com',
+    role: 'vendedor',
+    target: 150000,
+    status: 'active',
+    phone: '(11) 99999-1111',
+  },
+  {
+    id: 'u3',
+    name: 'João Silva',
+    email: 'joao@asaf.com',
+    role: 'vendedor',
+    target: 120000,
+    status: 'active',
+    phone: '(11) 99999-2222',
+  },
+  {
+    id: 'u4',
+    name: 'Marcos Santos',
+    email: 'marcos@asaf.com',
+    role: 'vendedor',
+    target: 100000,
+    status: 'inactive',
+    phone: '(11) 99999-3333',
+  },
 ]
 
 export const mockIndustries: Industry[] = [
@@ -13,6 +45,11 @@ export const mockIndustries: Industry[] = [
   { id: 'i2', name: 'Tubos e Conexões S.A.', commissionPercent: 0.08 },
   { id: 'i3', name: 'Elétrica Brasil', commissionPercent: 0.06 },
   { id: 'i4', name: 'Ferramentas Pro', commissionPercent: 0.1 },
+]
+
+export const mockCommissionRules: CommissionRule[] = [
+  { id: 'cr1', sellerId: 'u2', industryId: 'i1', splitPercent: 25 },
+  { id: 'cr2', sellerId: 'u2', industryId: 'i2', splitPercent: 30 },
 ]
 
 export const mockClients: Client[] = [

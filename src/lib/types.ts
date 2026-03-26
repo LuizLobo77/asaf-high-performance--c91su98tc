@@ -7,6 +7,8 @@ export interface User {
   email: string
   role: Role
   target: number
+  phone?: string
+  status?: 'active' | 'inactive'
 }
 
 export interface Client {
@@ -21,6 +23,13 @@ export interface Industry {
   id: string
   name: string
   commissionPercent: number
+}
+
+export interface CommissionRule {
+  id: string
+  sellerId: string
+  industryId: string
+  splitPercent: number
 }
 
 export interface VisitItem {
