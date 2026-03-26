@@ -20,11 +20,11 @@ export default function Configuracoes() {
     lastSync,
   } = useAppStore()
 
-  if (!currentUser) return null
-
   const [localLogoUrl, setLocalLogoUrl] = useState(logoUrl)
   const [localApiKey, setLocalApiKey] = useState(suasVendasApiKey)
   const [isSyncing, setIsSyncing] = useState(false)
+
+  if (!currentUser) return null
 
   const handleSaveBrand = () => {
     setLogoUrl(localLogoUrl)

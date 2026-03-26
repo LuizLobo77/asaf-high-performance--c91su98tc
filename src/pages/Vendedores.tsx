@@ -45,8 +45,6 @@ export default function Vendedores() {
     deleteCommissionRule,
   } = useAppStore()
 
-  if (!currentUser) return null
-
   const [isUserOpen, setIsUserOpen] = useState(false)
   const [isSplitOpen, setIsSplitOpen] = useState(false)
 
@@ -66,6 +64,8 @@ export default function Vendedores() {
   // Simulation State
   const [simOrderValue, setSimOrderValue] = useState('100000')
   const [simIndustryId, setSimIndustryId] = useState('')
+
+  if (!currentUser) return null
 
   if (currentUser.role !== 'gestor') {
     return <div className="text-center py-20 text-destructive font-bold text-xl">Acesso Negado</div>

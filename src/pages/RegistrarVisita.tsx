@@ -29,8 +29,6 @@ export default function RegistrarVisita() {
   const navigate = useNavigate()
   const { currentUser, clients, industries, addVisit } = useAppStore()
 
-  if (!currentUser) return null
-
   const [isSuccess, setIsSuccess] = useState(false)
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [clientId, setClientId] = useState('')
@@ -38,6 +36,8 @@ export default function RegistrarVisita() {
   const [items, setItems] = useState<FormItem[]>([
     { id: `i-${Date.now()}`, industryId: '', result: 'Venda', value: '' },
   ])
+
+  if (!currentUser) return null
 
   const myClients =
     currentUser.role === 'vendedor' ? clients.filter((c) => c.sellerId === currentUser.id) : clients
