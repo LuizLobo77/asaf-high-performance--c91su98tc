@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Settings2, Trash2, Calculator, Users, CheckCircle2 } from 'lucide-react'
+import { Settings2, Trash2, Calculator, Users } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   Table,
@@ -138,8 +138,7 @@ export default function Vendedores() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-2 sm:p-6 sm:pt-0">
-          {/* Desktop Table View */}
-          <div className="hidden md:block w-full">
+          <div className="w-full overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -213,89 +212,6 @@ export default function Vendedores() {
               </TableBody>
             </Table>
           </div>
-
-          {/* Mobile Card View */}
-          <div className="grid grid-cols-1 gap-4 md:hidden mt-2">
-            {sellers.map((s) => (
-              <Card
-                key={s.id}
-                className={`overflow-hidden border-border/50 shadow-sm ${
-                  s.status === 'inactive' ? 'opacity-70 bg-muted/30' : ''
-                }`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <span className="font-semibold text-base leading-tight text-[#1E40AF]">
-                      {s.name}
-                    </span>
-                    <Badge
-                      variant={s.status === 'active' ? 'default' : 'secondary'}
-                      className={
-                        s.status === 'active'
-                          ? 'bg-success hover:bg-success/90 shrink-0'
-                          : 'shrink-0'
-                      }
-                    >
-                      {s.status === 'active' ? 'Ativo' : 'Inativo'}
-                    </Badge>
-                  </div>
-
-                  <div className="flex flex-col gap-2 text-sm bg-muted/30 p-3 rounded-md mb-4 border border-border/50">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Email
-                      </span>
-                      <span className="text-foreground truncate">{s.email}</span>
-                    </div>
-                    <div className="flex flex-col border-t border-border/50 pt-2">
-                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Telefone
-                      </span>
-                      <span className="text-foreground">{s.phone || 'Não informado'}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openSplitConfig(s)}
-                      className="flex-1 sm:flex-none"
-                    >
-                      <Settings2 className="w-4 h-4 mr-2 text-[#1E40AF]" />
-                      Regras
-                    </Button>
-                    {s.status === 'active' ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeactivate(s)}
-                        className="flex-1 sm:flex-none text-destructive hover:bg-destructive/10 border-destructive/20"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Desativar
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleActivate(s)}
-                        className="flex-1 sm:flex-none"
-                      >
-                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                        Reativar
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {sellers.length === 0 && (
-              <div className="text-center text-muted-foreground py-8 border border-border/50 rounded-lg bg-muted/10">
-                Nenhum vendedor cadastrado na plataforma.
-              </div>
-            )}
-          </div>
         </CardContent>
       </Card>
 
@@ -351,8 +267,7 @@ export default function Vendedores() {
               </Button>
             </form>
 
-            {/* Desktop Split Table */}
-            <div className="border rounded-md hidden md:block">
+            <div className="border rounded-md w-full overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -395,46 +310,6 @@ export default function Vendedores() {
                   )}
                 </TableBody>
               </Table>
-            </div>
-
-            {/* Mobile Split List */}
-            <div className="md:hidden space-y-3 mt-4">
-              {userSplits.map((rule) => {
-                const ind = industries.find((i) => i.id === rule.industryId)
-                return (
-                  <div
-                    key={rule.id}
-                    className="flex items-center justify-between p-3 border border-border/50 rounded-lg bg-card shadow-sm"
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-medium text-sm text-[#1E40AF]">
-                        {ind?.name || 'Indústria não encontrada'}
-                        {ind?.status === 'inactive' && (
-                          <span className="text-xs text-muted-foreground ml-2 font-normal">
-                            (Inativa)
-                          </span>
-                        )}
-                      </span>
-                      <span className="text-sm text-muted-foreground mt-1">
-                        Split: <strong className="text-foreground">{rule.splitPercent}%</strong>
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:bg-destructive/10 shrink-0"
-                      onClick={() => deleteCommissionRule(rule.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )
-              })}
-              {userSplits.length === 0 && (
-                <div className="text-center text-muted-foreground py-6 border border-border/50 rounded-lg bg-muted/10">
-                  Nenhuma regra configurada.
-                </div>
-              )}
             </div>
 
             {/* Simulation Engine Preview */}
