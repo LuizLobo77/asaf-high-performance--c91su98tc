@@ -9,6 +9,7 @@ import {
   Settings,
   BarChart2,
   Building2,
+  Shield,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -93,6 +94,15 @@ export function AppSidebar() {
               <SidebarMenuButton asChild isActive={location.pathname === '/industrias'}>
                 <Link to="/industrias">
                   <Building2 className="w-5 h-5" /> <span>Indústrias</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+          {isManager && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={location.pathname === '/acessos'}>
+                <Link to="/acessos">
+                  <Shield className="w-5 h-5" /> <span>Gestão de Acessos</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

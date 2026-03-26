@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Edit2, Settings2, Trash2, Calculator, Users } from 'lucide-react'
+import { Settings2, Trash2, Calculator, Users } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   Table,
@@ -27,7 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import useAppStore from '@/stores/useAppStore'
 import { toast } from '@/hooks/use-toast'
 import type { User } from '@/lib/types'
@@ -37,7 +36,6 @@ export default function Vendedores() {
   const {
     currentUser,
     users,
-    addUser,
     updateUser,
     industries,
     commissionRules,
@@ -45,16 +43,7 @@ export default function Vendedores() {
     deleteCommissionRule,
   } = useAppStore()
 
-  const [isUserOpen, setIsUserOpen] = useState(false)
   const [isSplitOpen, setIsSplitOpen] = useState(false)
-
-  // User Form State
-  const [editingUser, setEditingUser] = useState<User | null>(null)
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [password, setPassword] = useState('')
-  const [status, setStatus] = useState<'active' | 'inactive'>('active')
 
   // Split Config State
   const [splitUser, setSplitUser] = useState<User | null>(null)
@@ -72,26 +61,7 @@ export default function Vendedores() {
   }
 
   const sellers = users.filter((u) => u.role === 'vendedor')
-
-  const openNewUser = () => {
-    setEditingUser(null)
-    setName('')
-    setEmail('')
-    setPhone('')
-    setPassword('')
-    setStatus('active')
-    setIsUserOpen(true)
-  }
-
-  const openEditUser = (u: User) => {
-    setEditingUser(u)
-    setName(u.name)
-    setEmail(u.email)
-    setPhone(u.phone || '')
-    setPassword(u.password || '')
-    setStatus(u.status || 'active')
-    setIsUserOpen(true)
-  }
+  const activeIndustries = industries.filter((i) => i.status !== 'inactive')
 
   const openSplitConfig = (u: User) => {
     setSplitUser(u)
@@ -101,39 +71,17 @@ export default function Vendedores() {
     setIsSplitOpen(true)
   }
 
-  const handleSaveUser = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!name || !email) return
-
-    if (editingUser) {
-      updateUser(editingUser.id, {
-        name,
-        email,
-        phone,
-        status,
-        ...(password ? { password } : {}),
-      })
-      toast({ title: 'Vendedor atualizado com sucesso.' })
-    } else {
-      addUser({
-        id: `v-${Date.now()}`,
-        name,
-        email,
-        phone,
-        status,
-        password: password || 'Mudar@123',
-        mustChangePassword: !password || password === 'Mudar@123',
-        role: 'vendedor',
-        target: 0,
-      })
-      toast({ title: 'Vendedor cadastrado com sucesso.' })
-    }
-    setIsUserOpen(false)
+  const handleDeactivate = (u: User) => {
+    updateUser(u.id, { status: 'inactive' })
+    toast({
+      title: `Vendedor ${u.name} desativado.`,
+      description: 'Acesso bloqueado e oculto em novos registros.',
+    })
   }
 
-  const handleToggleStatus = (u: User) => {
-    updateUser(u.id, { status: u.status === 'active' ? 'inactive' : 'active' })
-    toast({ title: `Status de ${u.name} alterado.` })
+  const handleActivate = (u: User) => {
+    updateUser(u.id, { status: 'active' })
+    toast({ title: `Vendedor ${u.name} reativado.` })
   }
 
   const handleAddSplit = (e: React.FormEvent) => {
@@ -173,20 +121,19 @@ export default function Vendedores() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-[#1E40AF]">Equipe de Vendas</h1>
           <p className="text-muted-foreground mt-1">
-            Gerencie seus vendedores e configure as regras de split de comissão.
+            Gerencie sua equipe, configure splits de comissão e desative vendedores.
           </p>
         </div>
-        <Button onClick={openNewUser} className="bg-[#1E40AF] hover:bg-[#1E40AF]/90">
-          <Plus className="w-4 h-4 mr-2" /> Novo Vendedor
-        </Button>
       </div>
 
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-primary" /> Lista de Vendedores
+            <Users className="w-5 h-5 text-primary" /> Força de Vendas
           </CardTitle>
-          <CardDescription>Gerencie o acesso e perfil da sua equipe de vendas.</CardDescription>
+          <CardDescription>
+            Para criar ou editar dados cadastrais, acesse a aba Gestão de Acessos.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -201,7 +148,10 @@ export default function Vendedores() {
             </TableHeader>
             <TableBody>
               {sellers.map((s) => (
-                <TableRow key={s.id}>
+                <TableRow
+                  key={s.id}
+                  className={s.status === 'inactive' ? 'opacity-60 bg-muted/30' : ''}
+                >
                   <TableCell className="font-medium">{s.name}</TableCell>
                   <TableCell>{s.email}</TableCell>
                   <TableCell>{s.phone || 'Não informado'}</TableCell>
@@ -218,27 +168,32 @@ export default function Vendedores() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleToggleStatus(s)}
-                        title="Alternar Status"
-                      >
-                        <Switch checked={s.status === 'active'} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
                         onClick={() => openSplitConfig(s)}
                         title="Configurar Regras de Comissão"
                       >
                         <Settings2 className="w-4 h-4 text-[#1E40AF]" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEditUser(s)}
-                        title="Editar Cadastro"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
+
+                      {s.status === 'active' ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeactivate(s)}
+                          className="text-destructive hover:bg-destructive/10"
+                          title="Desativar Vendedor (Exclusão Lógica)"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleActivate(s)}
+                          title="Reativar Vendedor"
+                        >
+                          Reativar
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -246,7 +201,8 @@ export default function Vendedores() {
               {sellers.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    Nenhum vendedor cadastrado.
+                    Nenhum vendedor cadastrado na plataforma. Vá em Gestão de Acessos para
+                    adicionar.
                   </TableCell>
                 </TableRow>
               )}
@@ -255,71 +211,13 @@ export default function Vendedores() {
         </CardContent>
       </Card>
 
-      {/* Cadastro/Edição de Vendedor Dialog */}
-      <Dialog open={isUserOpen} onOpenChange={setIsUserOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingUser ? 'Editar Vendedor' : 'Adicionar Novo Vendedor'}</DialogTitle>
-            <DialogDescription>Preencha os dados do representante de vendas.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSaveUser} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome Completo</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email de Acesso</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="(00) 00000-0000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">{editingUser ? 'Nova Senha' : 'Senha Inicial'}</Label>
-                <Input
-                  id="password"
-                  type="text"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={editingUser ? 'Deixe em branco para manter' : 'Padrão: Mudar@123'}
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-between pt-2">
-              <Label htmlFor="status">Cadastro Ativo</Label>
-              <Switch
-                id="status"
-                checked={status === 'active'}
-                onCheckedChange={(checked) => setStatus(checked ? 'active' : 'inactive')}
-              />
-            </div>
-            <Button type="submit" className="w-full mt-4 bg-[#1E40AF] hover:bg-[#1E40AF]/90">
-              Salvar Vendedor
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
       {/* Configuração de Split Dialog */}
       <Dialog open={isSplitOpen} onOpenChange={setIsSplitOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Regras de Comissão: {splitUser?.name}</DialogTitle>
             <DialogDescription>
-              Defina o percentual de split exclusivo deste vendedor para cada indústria.
+              Defina o percentual de split exclusivo deste vendedor para cada indústria ativa.
             </DialogDescription>
           </DialogHeader>
 
@@ -335,7 +233,7 @@ export default function Vendedores() {
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {industries.map((ind) => (
+                    {activeIndustries.map((ind) => (
                       <SelectItem key={ind.id} value={ind.id}>
                         {ind.name}
                       </SelectItem>
@@ -377,6 +275,9 @@ export default function Vendedores() {
                       <TableRow key={rule.id}>
                         <TableCell className="font-medium">
                           {ind?.name || 'Indústria não encontrada'}
+                          {ind?.status === 'inactive' && (
+                            <span className="text-xs text-muted-foreground ml-2">(Inativa)</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">{rule.splitPercent}%</TableCell>
                         <TableCell className="text-right">

@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -24,7 +25,7 @@ import useAppStore from '@/stores/useAppStore'
 import { toast } from '@/hooks/use-toast'
 
 export default function Industrias() {
-  const { currentUser, industries, addIndustry, deleteIndustry, visits } = useAppStore()
+  const { currentUser, industries, addIndustry, deleteIndustry, updateIndustry } = useAppStore()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [commission, setCommission] = useState('')
@@ -43,6 +44,7 @@ export default function Industrias() {
       id: `i-${Date.now()}`,
       name,
       commissionPercent: Number(commission) / 100,
+      status: 'active',
     })
 
     toast({ title: 'Indústria adicionada com sucesso.' })
@@ -51,18 +53,14 @@ export default function Industrias() {
     setCommission('')
   }
 
-  const handleDelete = (id: string) => {
-    const isUsed = visits.some((v) => v.items.some((i) => i.industryId === id))
-    if (isUsed) {
-      toast({
-        title: 'Não é possível remover',
-        description: 'Esta indústria possui registros de visitas atrelados a ela.',
-        variant: 'destructive',
-      })
-      return
-    }
-    deleteIndustry(id)
-    toast({ title: 'Indústria removida.' })
+  const handleDeactivate = (id: string) => {
+    deleteIndustry(id) // Logical Delete
+    toast({ title: 'Indústria desativada.', description: 'Ela não aparecerá em novos registros.' })
+  }
+
+  const handleActivate = (id: string) => {
+    updateIndustry(id, { status: 'active' })
+    toast({ title: 'Indústria reativada.' })
   }
 
   return (
@@ -127,28 +125,59 @@ export default function Industrias() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead className="text-right">Comissão Padrão (%)</TableHead>
+                <TableHead className="text-center">Status</TableHead>
                 <TableHead className="w-[100px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {industries.map((ind) => (
-                <TableRow key={ind.id}>
+                <TableRow
+                  key={ind.id}
+                  className={ind.status === 'inactive' ? 'opacity-60 bg-muted/30' : ''}
+                >
                   <TableCell className="font-medium">{ind.name}</TableCell>
                   <TableCell className="text-right">
                     {(ind.commissionPercent * 100).toFixed(1)}%
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(ind.id)}
-                      className="text-destructive hover:bg-destructive/10"
+                  <TableCell className="text-center">
+                    <Badge
+                      variant={ind.status === 'inactive' ? 'secondary' : 'default'}
+                      className={ind.status !== 'inactive' ? 'bg-success hover:bg-success/90' : ''}
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                      {ind.status === 'inactive' ? 'Inativa' : 'Ativa'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {ind.status !== 'inactive' ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeactivate(ind.id)}
+                        className="text-destructive hover:bg-destructive/10"
+                        title="Desativar"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleActivate(ind.id)}
+                        title="Reativar"
+                      >
+                        Reativar
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
+              {industries.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    Nenhuma indústria cadastrada no momento.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

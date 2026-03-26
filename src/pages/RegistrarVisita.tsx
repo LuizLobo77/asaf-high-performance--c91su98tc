@@ -42,6 +42,9 @@ export default function RegistrarVisita() {
   const myClients =
     currentUser.role === 'vendedor' ? clients.filter((c) => c.sellerId === currentUser.id) : clients
 
+  // Filter out soft-deleted industries for new registrations
+  const activeIndustries = industries.filter((i) => i.status !== 'inactive')
+
   const addItemRow = () => {
     setItems([...items, { id: `i-${Date.now()}`, industryId: '', result: 'Venda', value: '' }])
   }
@@ -183,7 +186,7 @@ export default function RegistrarVisita() {
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {industries.map((ind) => (
+                        {activeIndustries.map((ind) => (
                           <SelectItem key={ind.id} value={ind.id}>
                             {ind.name}
                           </SelectItem>

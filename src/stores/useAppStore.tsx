@@ -30,6 +30,7 @@ interface AppState {
   addVisit: (visit: Visit) => void
   importVisits: (newVisits: Visit[]) => void
   addIndustry: (industry: Industry) => void
+  updateIndustry: (id: string, industry: Partial<Industry>) => void
   deleteIndustry: (id: string) => void
   setCommissionRule: (rule: CommissionRule) => void
   deleteCommissionRule: (id: string) => void
@@ -95,9 +96,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     })
   }
 
-  const addIndustry = (industry: Industry) => setIndustries((prev) => [...prev, industry])
+  const addIndustry = (industry: Industry) =>
+    setIndustries((prev) => [...prev, { ...industry, status: 'active' }])
 
-  const deleteIndustry = (id: string) => setIndustries((prev) => prev.filter((i) => i.id !== id))
+  const updateIndustry = (id: string, partial: Partial<Industry>) => {
+    setIndustries((prev) => prev.map((i) => (i.id === id ? { ...i, ...partial } : i)))
+  }
+
+  const deleteIndustry = (id: string) => {
+    // Logical deletion (Soft Delete) to preserve historical integrity
+    setIndustries((prev) => prev.map((i) => (i.id === id ? { ...i, status: 'inactive' } : i)))
+  }
 
   const setCommissionRule = (rule: CommissionRule) => {
     setCommissionRules((prev) => {
@@ -123,18 +132,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       throw new Error('Configure a API Key primeiro.')
     }
     await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    const { generateMockVisits } = await import('@/lib/mockData')
-    const externalVisits = generateMockVisits()
-      .slice(0, 10)
-      .map((v) => ({
-        ...v,
-        id: `sv-${Date.now()}-${Math.random()}`,
-        externalId: `suasvendas-${Date.now()}-${Math.random()}`,
-        date: new Date().toISOString(),
-      }))
-
-    importVisits(externalVisits)
     setLastSync(new Date().toISOString())
   }
 
@@ -160,6 +157,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         addVisit,
         importVisits,
         addIndustry,
+        updateIndustry,
         deleteIndustry,
         setCommissionRule,
         deleteCommissionRule,

@@ -13,6 +13,7 @@ import Clientes from './pages/Clientes'
 import Ranking from './pages/Ranking'
 import Industrias from './pages/Industrias'
 import Vendedores from './pages/Vendedores'
+import Acessos from './pages/Acessos'
 import Configuracoes from './pages/Configuracoes'
 import NotFound from './pages/NotFound'
 
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/ranking" element={<Ranking />} />
             <Route path="/industrias" element={<Industrias />} />
             <Route path="/vendedores" element={<Vendedores />} />
+            <Route path="/acessos" element={<Acessos />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
           </Route>
           <Route path="*" element={<NotFound />} />

@@ -25,6 +25,7 @@ export interface Industry {
   id: string
   name: string
   commissionPercent: number
+  status?: 'active' | 'inactive'
 }
 
 export interface CommissionRule {

@@ -132,14 +132,10 @@ export default function Login() {
                 </Button>
               </form>
               <div className="mt-6 text-sm text-center text-muted-foreground border-t border-border/50 pt-6">
-                <p>Contas de demonstração:</p>
+                <p>Conta principal de acesso:</p>
                 <div className="mt-2 space-y-1 text-xs">
                   <p>
                     Admin: <span className="font-medium text-foreground">carlos@asaf.com</span>{' '}
-                    (Senha: 123456)
-                  </p>
-                  <p>
-                    Vendedor: <span className="font-medium text-foreground">ana@asaf.com</span>{' '}
                     (Senha: 123456)
                   </p>
                 </div>
