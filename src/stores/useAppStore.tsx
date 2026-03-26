@@ -11,6 +11,8 @@ interface AppState {
   setCurrentUser: (id: string) => void
   addVisit: (visit: Visit) => void
   importVisits: (newVisits: Visit[]) => void
+  addIndustry: (industry: Industry) => void
+  deleteIndustry: (id: string) => void
 }
 
 const AppContext = createContext<AppState | null>(null)
@@ -19,7 +21,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [users] = useState<User[]>(mockUsers)
   const [currentUser, setCurrentUser] = useState<User>(mockUsers[0]) // Starts as Gestor
   const [clients] = useState<Client[]>(mockClients)
-  const [industries] = useState<Industry[]>(mockIndustries)
+  const [industries, setIndustries] = useState<Industry[]>(mockIndustries)
   const [visits, setVisits] = useState<Visit[]>(mockVisits)
 
   const handleSetCurrentUser = (id: string) => {
@@ -27,9 +29,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (user) setCurrentUser(user)
   }
 
-  const addVisit = (visit: Visit) => {
-    setVisits((prev) => [visit, ...prev])
-  }
+  const addVisit = (visit: Visit) => setVisits((prev) => [visit, ...prev])
 
   const importVisits = (newVisits: Visit[]) => {
     setVisits((prev) => {
@@ -38,6 +38,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return [...uniqueNew, ...prev]
     })
   }
+
+  const addIndustry = (industry: Industry) => setIndustries((prev) => [...prev, industry])
+
+  const deleteIndustry = (id: string) => setIndustries((prev) => prev.filter((i) => i.id !== id))
 
   return React.createElement(
     AppContext.Provider,
@@ -51,6 +55,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setCurrentUser: handleSetCurrentUser,
         addVisit,
         importVisits,
+        addIndustry,
+        deleteIndustry,
       },
     },
     children,
@@ -59,8 +65,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
 export default function useAppStore() {
   const context = useContext(AppContext)
-  if (!context) {
-    throw new Error('useAppStore must be used within an AppProvider')
-  }
+  if (!context) throw new Error('useAppStore must be used within an AppProvider')
   return context
 }

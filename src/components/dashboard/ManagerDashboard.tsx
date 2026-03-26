@@ -1,4 +1,4 @@
-import { DollarSign, Percent, Briefcase, Target } from 'lucide-react'
+import { DollarSign, Percent, Briefcase, Target, HandCoins } from 'lucide-react'
 import { useDashboardMetrics } from '@/hooks/useDashboardMetrics'
 import { StatCard } from './StatCard'
 import { ManagerTargetChart } from '@/components/charts/ManagerTargetChart'
@@ -10,19 +10,21 @@ export function ManagerDashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           title="Vendas Totais"
           value={`R$ ${metrics.totalSalesValue.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
           icon={DollarSign}
-          trend={{ value: 12, isUp: true }}
-          subtitle="vs mês anterior"
         />
         <StatCard
-          title="Taxa de Conversão"
+          title="Comissões Estimadas"
+          value={`R$ ${metrics.totalCommission.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
+          icon={HandCoins}
+        />
+        <StatCard
+          title="Conversão (Visitas)"
           value={`${metrics.conversionRate.toFixed(1)}%`}
           icon={Percent}
-          trend={{ value: 2.4, isUp: true }}
         />
         <StatCard
           title="Ticket Médio"

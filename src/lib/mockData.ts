@@ -1,5 +1,5 @@
 import { subDays, formatISO } from 'date-fns'
-import type { User, Client, Industry, Visit, VisitResult } from './types'
+import type { User, Client, Industry, Visit, VisitItem, VisitResult } from './types'
 
 export const mockUsers: User[] = [
   { id: 'u1', name: 'Carlos Gestor', email: 'carlos@asaf.com', role: 'gestor', target: 0 },
@@ -28,24 +28,36 @@ export const generateMockVisits = (): Visit[] => {
   const today = new Date()
 
   for (let i = 0; i < 200; i++) {
-    const isSale = Math.random() > 0.4
-    const result: VisitResult = isSale ? 'Venda' : Math.random() > 0.5 ? 'Sem Venda' : 'Agendamento'
-    const seller = mockUsers[Math.floor(Math.random() * 3) + 1] // Skip gestor
-    const value = isSale ? Math.floor(Math.random() * 15000) + 1000 : undefined
+    const seller = mockUsers[Math.floor(Math.random() * 3) + 1]
+    const isSaleVisit = Math.random() > 0.4
+    const numItems = isSaleVisit ? Math.floor(Math.random() * 3) + 1 : 1
+    const items: VisitItem[] = []
+
+    for (let j = 0; j < numItems; j++) {
+      const isItemSale = isSaleVisit ? Math.random() > 0.3 : false
+      const result: VisitResult = isItemSale
+        ? 'Venda'
+        : Math.random() > 0.5
+          ? 'Sem Venda'
+          : 'Agendamento'
+
+      items.push({
+        id: `vi-${i}-${j}`,
+        industryId: mockIndustries[Math.floor(Math.random() * mockIndustries.length)].id,
+        result,
+        value: isItemSale ? Math.floor(Math.random() * 8000) + 500 : undefined,
+      })
+    }
 
     visits.push({
       id: `v${i}`,
       date: formatISO(subDays(today, Math.floor(Math.random() * 30))),
       sellerId: seller.id,
       clientId: mockClients[Math.floor(Math.random() * mockClients.length)].id,
-      result,
-      value,
-      industryId: isSale
-        ? mockIndustries[Math.floor(Math.random() * mockIndustries.length)].id
-        : undefined,
-      notes: isSale
-        ? 'Pedido aprovado com sucesso.'
-        : 'Cliente pediu para retornar semana que vem.',
+      notes: isSaleVisit
+        ? 'Visita produtiva, múltiplos orçamentos aprovados.'
+        : 'Apenas prospecção.',
+      items,
     })
   }
 

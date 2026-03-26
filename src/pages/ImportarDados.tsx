@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { UploadCloud, FileType } from 'lucide-react'
+import { UploadCloud } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/hooks/use-toast'
 import useAppStore from '@/stores/useAppStore'
-import { VisitResult } from '@/lib/types'
+import { VisitResult, Visit } from '@/lib/types'
 
 export default function ImportarDados() {
   const { currentUser, importVisits, users, clients, industries } = useAppStore()
@@ -31,28 +31,41 @@ export default function ImportarDados() {
         const lines = text.split('\n').filter((l) => l.trim())
         if (lines.length < 2) throw new Error('Arquivo vazio ou sem dados.')
 
-        const newVisits = lines.slice(1).map((line, i) => {
-          // Expected CSV Format: Data,ID_Vendedor,ID_Cliente,Resultado,Valor,ID_Industria,ID_Pedido
+        const groupedVisits: Record<string, Visit> = {}
+
+        lines.slice(1).forEach((line, i) => {
+          // Format: Data,ID_Vendedor,ID_Cliente,Resultado,Valor,ID_Industria,ID_Pedido
           const [date, sellerId, clientId, result, value, industryId, extId] = line
             .split(',')
             .map((s) => s.trim())
 
-          return {
-            id: `imp-${Date.now()}-${i}`,
-            date: date ? new Date(date).toISOString() : new Date().toISOString(),
-            sellerId: sellerId || users[1].id,
-            clientId: clientId || clients[0].id,
+          const visitKey = extId || `no-ext-${date}-${sellerId}-${clientId}`
+
+          if (!groupedVisits[visitKey]) {
+            groupedVisits[visitKey] = {
+              id: `imp-${Date.now()}-${i}`,
+              date: date ? new Date(date).toISOString() : new Date().toISOString(),
+              sellerId: sellerId || users[1].id,
+              clientId: clientId || clients[0].id,
+              externalId: extId,
+              items: [],
+            }
+          }
+
+          groupedVisits[visitKey].items.push({
+            id: `imp-item-${Date.now()}-${i}`,
+            industryId: industryId || industries[0].id,
             result: (result as VisitResult) || 'Venda',
             value: Number(value) || 0,
-            industryId: industryId || industries[0].id,
-            externalId: extId,
-          }
+          })
         })
 
+        const newVisits = Object.values(groupedVisits)
         importVisits(newVisits)
+
         toast({
           title: 'Importação Concluída',
-          description: `${newVisits.length} registros processados com sucesso.`,
+          description: `${newVisits.length} visitas agrupadas e processadas com sucesso.`,
         })
       } catch (err) {
         toast({
@@ -68,17 +81,16 @@ export default function ImportarDados() {
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0)
       processFile(e.dataTransfer.files[0])
-    }
   }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Importar Dados</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[#1E40AF]">Importar Dados</h1>
         <p className="text-muted-foreground mt-1">
-          Sincronize as informações do SuasVendas via CSV.
+          Sincronize as informações de vendas e visitas via CSV.
         </p>
       </div>
 
@@ -86,7 +98,7 @@ export default function ImportarDados() {
         <CardHeader>
           <CardTitle>Upload de Arquivo</CardTitle>
           <CardDescription>
-            O sistema identificará automaticamente a coluna ID_Pedido para evitar duplicidade.
+            O sistema agrupará automaticamente itens com o mesmo ID_Pedido na mesma visita.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -102,12 +114,10 @@ export default function ImportarDados() {
             onClick={() => document.getElementById('csv-upload')?.click()}
           >
             <UploadCloud
-              className={`w-16 h-16 mb-4 ${isDragging ? 'text-primary animate-bounce' : 'text-muted-foreground'}`}
+              className={`w-16 h-16 mb-4 ${isDragging ? 'text-[#1E40AF] animate-bounce' : 'text-[#6B7280]'}`}
             />
             <h3 className="text-lg font-semibold mb-1">Arraste seu arquivo CSV aqui</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              ou clique para procurar no seu computador
-            </p>
+            <p className="text-sm text-[#6B7280] mb-4">ou clique para procurar no seu computador</p>
             <Button variant="outline" className="pointer-events-none">
               Selecionar Arquivo
             </Button>
@@ -118,7 +128,7 @@ export default function ImportarDados() {
               accept=".csv"
               onChange={(e) => {
                 if (e.target.files?.[0]) processFile(e.target.files[0])
-                e.target.value = '' // reset
+                e.target.value = ''
               }}
             />
           </div>

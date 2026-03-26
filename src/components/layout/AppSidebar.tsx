@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Plus, Trophy, Users, Upload, Settings, BarChart2 } from 'lucide-react'
+import { Home, Plus, Trophy, Users, Upload, Settings, BarChart2, Building2 } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -20,7 +20,7 @@ export function AppSidebar() {
     <Sidebar className="border-r border-border">
       <SidebarHeader className="p-6">
         <Link to="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-primary-foreground shadow-md">
+          <div className="w-10 h-10 bg-[#1E40AF] rounded-lg flex items-center justify-center text-primary-foreground shadow-md">
             <BarChart2 className="w-6 h-6" />
           </div>
           <span className="font-bold text-xl tracking-tight text-foreground">ASAF</span>
@@ -60,6 +60,15 @@ export function AppSidebar() {
           </SidebarMenuItem>
           {isManager && (
             <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={location.pathname === '/industrias'}>
+                <Link to="/industrias">
+                  <Building2 className="w-5 h-5" /> <span>Indústrias</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+          {isManager && (
+            <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={location.pathname === '/importar'}>
                 <Link to="/importar">
                   <Upload className="w-5 h-5" /> <span>Importar Dados</span>
@@ -78,8 +87,8 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="p-4 border-t border-border mt-auto">
         <div className="flex flex-col">
-          <span className="text-sm font-semibold truncate">{currentUser.name}</span>
-          <span className="text-xs text-muted-foreground capitalize">{currentUser.role}</span>
+          <span className="text-sm font-semibold truncate text-[#1E40AF]">{currentUser.name}</span>
+          <span className="text-xs text-[#6B7280] capitalize">{currentUser.role}</span>
         </div>
       </SidebarFooter>
     </Sidebar>

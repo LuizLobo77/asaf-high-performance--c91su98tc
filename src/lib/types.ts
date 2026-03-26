@@ -23,14 +23,19 @@ export interface Industry {
   commissionPercent: number
 }
 
+export interface VisitItem {
+  id: string
+  industryId: string
+  result: VisitResult
+  value?: number
+}
+
 export interface Visit {
   id: string
   date: string
   sellerId: string
   clientId: string
-  result: VisitResult
-  value?: number
-  industryId?: string
+  items: VisitItem[]
   notes?: string
   externalId?: string
 }
