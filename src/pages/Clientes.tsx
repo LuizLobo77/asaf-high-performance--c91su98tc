@@ -210,7 +210,7 @@ export default function Clientes() {
   }
 
   return (
-    <div className="space-y-6 max-w-full overflow-hidden">
+    <div className="space-y-6 w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1E40AF]">Clientes</h1>
@@ -256,159 +256,302 @@ export default function Clientes() {
             />
           </div>
         </CardHeader>
-        <CardContent className="p-0 sm:p-6 sm:pt-0 overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {currentUser.role === 'gestor' && (
-                  <TableHead className="w-[40px] px-4">
-                    <Checkbox
-                      checked={
-                        displayClients.length > 0 &&
-                        selectedClientIds.size === displayClients.length
-                      }
-                      onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                      aria-label="Selecionar todos"
-                    />
-                  </TableHead>
-                )}
-                <TableHead className="min-w-[200px]">Razão Social</TableHead>
-                <TableHead className="min-w-[160px]">CNPJ</TableHead>
-                <TableHead className="min-w-[140px]">Cidade</TableHead>
-                {currentUser.role === 'gestor' && (
-                  <TableHead className="min-w-[160px]">Vendedor</TableHead>
-                )}
-                <TableHead className="min-w-[100px]">Status</TableHead>
-                <TableHead className="min-w-[100px] text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {currentUser.role === 'gestor' && (
-                      <TableCell className="px-4">
-                        <Skeleton className="h-4 w-4" />
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      <Skeleton className="h-4 w-[180px]" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-[140px]" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-[100px]" />
-                    </TableCell>
-                    {currentUser.role === 'gestor' && (
+        <CardContent className="p-2 sm:p-6 sm:pt-0">
+          {/* Desktop Table View */}
+          <div className="hidden md:block w-full">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {currentUser.role === 'gestor' && (
+                    <TableHead className="w-[40px] px-4">
+                      <Checkbox
+                        checked={
+                          displayClients.length > 0 &&
+                          selectedClientIds.size === displayClients.length
+                        }
+                        onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                        aria-label="Selecionar todos"
+                      />
+                    </TableHead>
+                  )}
+                  <TableHead className="min-w-[200px]">Razão Social</TableHead>
+                  <TableHead className="min-w-[160px]">CNPJ</TableHead>
+                  <TableHead className="min-w-[140px]">Cidade</TableHead>
+                  {currentUser.role === 'gestor' && (
+                    <TableHead className="min-w-[160px]">Vendedor</TableHead>
+                  )}
+                  <TableHead className="min-w-[100px]">Status</TableHead>
+                  <TableHead className="min-w-[100px] text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      {currentUser.role === 'gestor' && (
+                        <TableCell className="px-4">
+                          <Skeleton className="h-4 w-4" />
+                        </TableCell>
+                      )}
                       <TableCell>
-                        <Skeleton className="h-4 w-[130px]" />
+                        <Skeleton className="h-4 w-[180px]" />
                       </TableCell>
-                    )}
-                    <TableCell>
-                      <Skeleton className="h-5 w-[60px] rounded-full" />
-                    </TableCell>
-                    <TableCell className="flex justify-end gap-2">
-                      <Skeleton className="h-8 w-8 rounded-md" />
-                      <Skeleton className="h-8 w-8 rounded-md" />
+                      <TableCell>
+                        <Skeleton className="h-4 w-[140px]" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-[100px]" />
+                      </TableCell>
+                      {currentUser.role === 'gestor' && (
+                        <TableCell>
+                          <Skeleton className="h-4 w-[130px]" />
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        <Skeleton className="h-5 w-[60px] rounded-full" />
+                      </TableCell>
+                      <TableCell className="flex justify-end gap-2">
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : displayClients.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={currentUser.role === 'gestor' ? 7 : 5}
+                      className="text-center text-muted-foreground py-12"
+                    >
+                      Nenhum cliente encontrado.
                     </TableCell>
                   </TableRow>
-                ))
-              ) : displayClients.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={currentUser.role === 'gestor' ? 7 : 5}
-                    className="text-center text-muted-foreground py-12"
-                  >
-                    Nenhum cliente encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                displayClients.map((client) => (
-                  <TableRow key={client.id}>
-                    {currentUser.role === 'gestor' && (
-                      <TableCell className="px-4">
-                        <Checkbox
-                          checked={selectedClientIds.has(client.id)}
-                          onCheckedChange={(checked) => handleSelectOne(client.id, !!checked)}
-                          aria-label={`Selecionar ${client.name}`}
-                        />
+                ) : (
+                  displayClients.map((client) => (
+                    <TableRow key={client.id}>
+                      {currentUser.role === 'gestor' && (
+                        <TableCell className="px-4">
+                          <Checkbox
+                            checked={selectedClientIds.has(client.id)}
+                            onCheckedChange={(checked) => handleSelectOne(client.id, !!checked)}
+                            aria-label={`Selecionar ${client.name}`}
+                          />
+                        </TableCell>
+                      )}
+                      <TableCell className="font-medium">
+                        <div className="flex flex-col gap-1.5 items-start">
+                          <span className="truncate max-w-[250px]" title={client.name}>
+                            {client.name}
+                          </span>
+                          {!client.sellerId && (
+                            <Badge
+                              variant="outline"
+                              className="text-amber-600 border-amber-500/50 bg-amber-50 dark:bg-amber-950/50 dark:text-amber-400 text-[10px] px-1.5 py-0 h-5"
+                            >
+                              Carteira Livre
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
-                    )}
-                    <TableCell className="font-medium">
-                      <div className="flex flex-col gap-1.5 items-start">
-                        <span className="truncate max-w-[250px]" title={client.name}>
-                          {client.name}
-                        </span>
-                        {!client.sellerId && (
-                          <Badge
-                            variant="outline"
-                            className="text-amber-600 border-amber-500/50 bg-amber-50 dark:bg-amber-950/50 dark:text-amber-400 text-[10px] px-1.5 py-0 h-5"
-                          >
-                            Carteira Livre
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{client.cnpj || 'N/A'}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {client.city || client.region}
-                    </TableCell>
-                    {currentUser.role === 'gestor' && (
                       <TableCell className="text-muted-foreground">
-                        {client.sellerId ? (
-                          getSellerName(client.sellerId)
-                        ) : (
-                          <span className="text-amber-600 font-medium">Sem Dono</span>
-                        )}
+                        {client.cnpj || 'N/A'}
                       </TableCell>
-                    )}
-                    <TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {client.city || client.region}
+                      </TableCell>
+                      {currentUser.role === 'gestor' && (
+                        <TableCell className="text-muted-foreground">
+                          {client.sellerId ? (
+                            getSellerName(client.sellerId)
+                          ) : (
+                            <span className="text-amber-600 font-medium">Sem Dono</span>
+                          )}
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        <Badge
+                          variant={client.status === 'inactive' ? 'secondary' : 'outline'}
+                          className={
+                            client.status === 'inactive'
+                              ? ''
+                              : 'border-green-500/50 text-green-600 bg-green-50 dark:bg-green-950 dark:text-green-400'
+                          }
+                        >
+                          {client.status === 'inactive' ? 'Inativo' : 'Ativo'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openModal(client)}
+                            title="Editar"
+                          >
+                            <Edit2 className="w-4 h-4 text-muted-foreground" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleToggleStatus(client)}
+                            title={client.status === 'inactive' ? 'Ativar' : 'Desativar'}
+                            className={
+                              client.status === 'inactive'
+                                ? 'text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/50'
+                                : 'text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50'
+                            }
+                          >
+                            {client.status === 'inactive' ? (
+                              <CheckCircle2 className="w-4 h-4" />
+                            ) : (
+                              <Ban className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="grid grid-cols-1 gap-4 md:hidden mt-2">
+            {currentUser.role === 'gestor' && displayClients.length > 0 && (
+              <div className="flex items-center gap-2 px-2 pb-2">
+                <Checkbox
+                  id="select-all-mobile"
+                  checked={
+                    displayClients.length > 0 && selectedClientIds.size === displayClients.length
+                  }
+                  onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                />
+                <Label htmlFor="select-all-mobile" className="font-medium cursor-pointer">
+                  Selecionar Todos ({selectedClientIds.size})
+                </Label>
+              </div>
+            )}
+
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <Card key={i} className="overflow-hidden border-border/50">
+                  <CardContent className="p-4 space-y-3">
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <div className="flex gap-2 justify-end mt-4">
+                      <Skeleton className="h-8 w-20" />
+                      <Skeleton className="h-8 w-20" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : displayClients.length === 0 ? (
+              <div className="text-center text-muted-foreground py-12 border border-border/50 rounded-lg bg-muted/10">
+                Nenhum cliente encontrado.
+              </div>
+            ) : (
+              displayClients.map((client) => (
+                <Card key={client.id} className="overflow-hidden border-border/50 shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex items-start gap-3">
+                        {currentUser.role === 'gestor' && (
+                          <div className="pt-1">
+                            <Checkbox
+                              checked={selectedClientIds.has(client.id)}
+                              onCheckedChange={(checked) => handleSelectOne(client.id, !!checked)}
+                              aria-label={`Selecionar ${client.name}`}
+                            />
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-1.5">
+                          <span className="font-semibold text-base leading-tight text-[#1E40AF]">
+                            {client.name}
+                          </span>
+                          {!client.sellerId && (
+                            <Badge
+                              variant="outline"
+                              className="w-fit text-amber-600 border-amber-500/50 bg-amber-50 dark:bg-amber-950/50 dark:text-amber-400 text-[10px] px-1.5 py-0 h-5"
+                            >
+                              Carteira Livre
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                       <Badge
                         variant={client.status === 'inactive' ? 'secondary' : 'outline'}
                         className={
                           client.status === 'inactive'
-                            ? ''
-                            : 'border-green-500/50 text-green-600 bg-green-50 dark:bg-green-950 dark:text-green-400'
+                            ? 'shrink-0'
+                            : 'shrink-0 border-green-500/50 text-green-600 bg-green-50 dark:bg-green-950 dark:text-green-400'
                         }
                       >
                         {client.status === 'inactive' ? 'Inativo' : 'Ativo'}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openModal(client)}
-                          title="Editar"
-                        >
-                          <Edit2 className="w-4 h-4 text-muted-foreground" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleToggleStatus(client)}
-                          title={client.status === 'inactive' ? 'Ativar' : 'Desativar'}
-                          className={
-                            client.status === 'inactive'
-                              ? 'text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/50'
-                              : 'text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50'
-                          }
-                        >
-                          {client.status === 'inactive' ? (
-                            <CheckCircle2 className="w-4 h-4" />
-                          ) : (
-                            <Ban className="w-4 h-4" />
-                          )}
-                        </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-md mb-4 border border-border/50">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium text-foreground/70 uppercase tracking-wider">
+                          CNPJ
+                        </span>
+                        <span className="text-foreground">{client.cnpj || 'N/A'}</span>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium text-foreground/70 uppercase tracking-wider">
+                          Cidade
+                        </span>
+                        <span className="text-foreground">{client.city || client.region}</span>
+                      </div>
+                      {currentUser.role === 'gestor' && (
+                        <div className="flex flex-col sm:col-span-2 pt-1 border-t border-border/50 mt-1">
+                          <span className="text-xs font-medium text-foreground/70 uppercase tracking-wider">
+                            Vendedor
+                          </span>
+                          <span className="text-foreground">
+                            {client.sellerId ? (
+                              getSellerName(client.sellerId)
+                            ) : (
+                              <span className="text-amber-600 font-medium">Sem Dono</span>
+                            )}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openModal(client)}
+                        className="flex-1 sm:flex-none"
+                      >
+                        <Edit2 className="w-4 h-4 mr-2" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleToggleStatus(client)}
+                        className={`flex-1 sm:flex-none ${
+                          client.status === 'inactive'
+                            ? 'text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200'
+                            : 'text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200'
+                        }`}
+                      >
+                        {client.status === 'inactive' ? (
+                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                        ) : (
+                          <Ban className="w-4 h-4 mr-2" />
+                        )}
+                        {client.status === 'inactive' ? 'Ativar' : 'Desativar'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
 
