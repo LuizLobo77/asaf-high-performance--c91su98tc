@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { LucideIcon } from 'lucide-react'
+import { LucideIcon, ArrowUp, ArrowDown, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface StatCardProps {
@@ -7,7 +7,7 @@ interface StatCardProps {
   value: string | number
   subtitle?: string
   icon: LucideIcon
-  trend?: { value: number; isUp: boolean }
+  trend?: { value: number; status: 'up' | 'down' | 'stable' }
   className?: string
 }
 
@@ -28,15 +28,24 @@ export function StatCard({ title, value, subtitle, icon: Icon, trend, className 
       <CardContent>
         <div className="text-2xl font-bold tracking-tight">{value}</div>
         {(subtitle || trend) && (
-          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
             {trend && (
-              <span className={cn('font-medium', trend.isUp ? 'text-success' : 'text-destructive')}>
-                {trend.isUp ? '+' : '-'}
-                {Math.abs(trend.value)}%
+              <span
+                className={cn(
+                  'font-medium flex items-center',
+                  trend.status === 'up' && 'text-green-500',
+                  trend.status === 'down' && 'text-red-500',
+                  trend.status === 'stable' && 'text-gray-400',
+                )}
+              >
+                {trend.status === 'up' && <ArrowUp className="w-3 h-3 mr-1" />}
+                {trend.status === 'down' && <ArrowDown className="w-3 h-3 mr-1" />}
+                {trend.status === 'stable' && <Minus className="w-3 h-3 mr-1" />}
+                {trend.value.toFixed(1)}%
               </span>
             )}
             {subtitle && <span>{subtitle}</span>}
-          </p>
+          </div>
         )}
       </CardContent>
     </Card>

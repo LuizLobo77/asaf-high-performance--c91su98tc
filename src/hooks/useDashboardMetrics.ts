@@ -7,7 +7,16 @@ export function useDashboardMetrics(userId?: string) {
   const { visits, users, industries, clients } = useAppStore()
 
   return useMemo(() => {
+    const today = new Date()
+    const thirtyDaysAgo = subDays(today, 30)
+    const sixtyDaysAgo = subDays(today, 60)
+
     const relevantVisits = userId ? visits.filter((v) => v.sellerId === userId) : visits
+
+    const currentVisits = relevantVisits.filter((v) => isAfter(parseISO(v.date), thirtyDaysAgo))
+    const previousVisits = relevantVisits.filter(
+      (v) => isAfter(parseISO(v.date), sixtyDaysAgo) && !isAfter(parseISO(v.date), thirtyDaysAgo),
+    )
 
     const getVisitTotal = (v: Visit) =>
       v.items.reduce((acc, item) => acc + (item.result === 'Venda' ? item.value || 0 : 0), 0)
@@ -21,43 +30,60 @@ export function useDashboardMetrics(userId?: string) {
         return acc
       }, 0)
 
-    const salesVisits = relevantVisits.filter((v) => v.items.some((i) => i.result === 'Venda'))
-    const totalSalesValue = relevantVisits.reduce((acc, v) => acc + getVisitTotal(v), 0)
-    const totalCommission = relevantVisits.reduce((acc, v) => acc + getVisitCommission(v), 0)
+    const calcMetrics = (visitList: Visit[]) => {
+      const sales = visitList.filter((v) => v.items.some((i) => i.result === 'Venda'))
+      const totalVal = visitList.reduce((acc, v) => acc + getVisitTotal(v), 0)
+      const totalComm = visitList.reduce((acc, v) => acc + getVisitCommission(v), 0)
+      const totalCount = visitList.length
+      const convRate = totalCount ? (sales.length / totalCount) * 100 : 0
+      const avgTick = sales.length ? totalVal / sales.length : 0
 
-    const totalVisitsCount = relevantVisits.length
-    const conversionRate = totalVisitsCount ? (salesVisits.length / totalVisitsCount) * 100 : 0
-    const averageTicket = salesVisits.length ? totalSalesValue / salesVisits.length : 0
+      return { totalVal, totalComm, totalCount, convRate, avgTick, sales }
+    }
 
-    // Charts data
-    const thirtyDaysAgo = subDays(new Date(), 30)
-    const recentVisits = relevantVisits.filter((v) => isAfter(parseISO(v.date), thirtyDaysAgo))
+    const currentMetrics = calcMetrics(currentVisits)
+    const previousMetrics = calcMetrics(previousVisits)
+
+    const calcTrend = (curr: number, prev: number) => {
+      if (prev === 0 && curr === 0) return { value: 0, status: 'stable' as const }
+      if (prev === 0) return { value: 100, status: 'up' as const }
+      const diff = ((curr - prev) / prev) * 100
+      let status: 'up' | 'down' | 'stable' = 'stable'
+      if (diff > 0) status = 'up'
+      if (diff < 0) status = 'down'
+      return { value: Math.abs(diff), status }
+    }
+
+    const trends = {
+      sales: calcTrend(currentMetrics.totalVal, previousMetrics.totalVal),
+      commission: calcTrend(currentMetrics.totalComm, previousMetrics.totalComm),
+      visits: calcTrend(currentMetrics.totalCount, previousMetrics.totalCount),
+      conversion: calcTrend(currentMetrics.convRate, previousMetrics.convRate),
+      ticket: calcTrend(currentMetrics.avgTick, previousMetrics.avgTick),
+    }
 
     const sellerPerformance = users
       .filter((u) => u.role === 'vendedor')
       .map((seller) => {
-        const sVisits = visits.filter((v) => v.sellerId === seller.id)
-        const sSalesVisits = sVisits.filter((v) => v.items.some((i) => i.result === 'Venda'))
-        const sTotalSales = sVisits.reduce((acc, v) => acc + getVisitTotal(v), 0)
-        const sConv = sVisits.length ? (sSalesVisits.length / sVisits.length) * 100 : 0
-        const sTicket = sSalesVisits.length ? sTotalSales / sSalesVisits.length : 0
+        const sVisits = currentVisits.filter((v) => v.sellerId === seller.id)
+        const sMetrics = calcMetrics(sVisits)
 
         return {
           id: seller.id,
           name: seller.name,
           target: seller.target,
-          actual: sTotalSales,
-          visits: sVisits.length,
-          salesCount: sSalesVisits.length,
-          conversion: sConv,
-          averageTicket: sTicket,
+          actual: sMetrics.totalVal,
+          visits: sMetrics.totalCount,
+          salesCount: sMetrics.sales.length,
+          conversion: sMetrics.convRate,
+          averageTicket: sMetrics.avgTick,
         }
       })
       .sort((a, b) => b.actual - a.actual)
 
     const industryData = industries
       .map((ind) => {
-        const val = relevantVisits.reduce((acc, v) => {
+        const val = currentVisits.reduce((acc, v) => {
           const itemSum = v.items
             .filter((i) => i.industryId === ind.id && i.result === 'Venda')
             .reduce((sum, i) => sum + (i.value || 0), 0)
@@ -69,9 +95,9 @@ export function useDashboardMetrics(userId?: string) {
       .sort((a, b) => b.value - a.value)
 
     const trendData = Array.from({ length: 30 }).map((_, i) => {
-      const date = subDays(new Date(), 29 - i)
+      const date = subDays(today, 29 - i)
       const dateStr = format(date, 'yyyy-MM-dd')
-      const daySales = recentVisits
+      const daySales = currentVisits
         .filter((v) => v.date.startsWith(dateStr))
         .reduce((acc, v) => acc + getVisitTotal(v), 0)
       return { date: format(date, 'dd/MM'), sales: daySales }
@@ -108,16 +134,17 @@ export function useDashboardMetrics(userId?: string) {
       })
 
     return {
-      totalSalesValue,
-      totalCommission,
-      totalVisitsCount,
-      conversionRate,
-      averageTicket,
+      totalSalesValue: currentMetrics.totalVal,
+      totalCommission: currentMetrics.totalComm,
+      totalVisitsCount: currentMetrics.totalCount,
+      conversionRate: currentMetrics.convRate,
+      averageTicket: currentMetrics.avgTick,
+      trends,
       sellerPerformance,
       industryData,
       trendData,
       clientsLastPurchase,
-      recentVisitsList: relevantVisits.slice(0, 5),
+      recentVisitsList: currentVisits.slice(0, 5),
       getVisitTotal,
     }
   }, [visits, userId, users, industries, clients])

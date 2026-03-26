@@ -27,7 +27,7 @@ export const generateMockVisits = (): Visit[] => {
   const visits: Visit[] = []
   const today = new Date()
 
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 400; i++) {
     const seller = mockUsers[Math.floor(Math.random() * 3) + 1]
     const isSaleVisit = Math.random() > 0.4
     const numItems = isSaleVisit ? Math.floor(Math.random() * 3) + 1 : 1
@@ -51,7 +51,7 @@ export const generateMockVisits = (): Visit[] => {
 
     visits.push({
       id: `v${i}`,
-      date: formatISO(subDays(today, Math.floor(Math.random() * 30))),
+      date: formatISO(subDays(today, Math.floor(Math.random() * 60))),
       sellerId: seller.id,
       clientId: mockClients[Math.floor(Math.random() * mockClients.length)].id,
       notes: isSaleVisit

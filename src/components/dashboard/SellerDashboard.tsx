@@ -21,21 +21,25 @@ export function SellerDashboard() {
           title="Minhas Vendas"
           value={`R$ ${metrics.totalSalesValue.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
           icon={DollarSign}
+          trend={metrics.trends.sales}
         />
         <StatCard
           title="Minhas Comissões"
           value={`R$ ${metrics.totalCommission.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
           icon={HandCoins}
+          trend={metrics.trends.commission}
         />
         <StatCard
           title="Conversão"
           value={`${metrics.conversionRate.toFixed(1)}%`}
           icon={Percent}
+          trend={metrics.trends.conversion}
         />
         <StatCard
           title="Ticket Médio"
           value={`R$ ${metrics.averageTicket.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
           icon={Activity}
+          trend={metrics.trends.ticket}
         />
         <Card className="col-span-1 overflow-hidden transition-all hover:shadow-md border-border/50 bg-card/80 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

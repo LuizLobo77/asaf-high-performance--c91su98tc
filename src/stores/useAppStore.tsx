@@ -8,11 +8,17 @@ interface AppState {
   clients: Client[]
   industries: Industry[]
   visits: Visit[]
+  logoUrl: string
+  suasVendasApiKey: string
+  lastSync: string | null
   setCurrentUser: (id: string) => void
   addVisit: (visit: Visit) => void
   importVisits: (newVisits: Visit[]) => void
   addIndustry: (industry: Industry) => void
   deleteIndustry: (id: string) => void
+  setLogoUrl: (url: string) => void
+  setSuasVendasApiKey: (key: string) => void
+  syncSuasVendas: () => Promise<void>
 }
 
 const AppContext = createContext<AppState | null>(null)
@@ -23,6 +29,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [clients] = useState<Client[]>(mockClients)
   const [industries, setIndustries] = useState<Industry[]>(mockIndustries)
   const [visits, setVisits] = useState<Visit[]>(mockVisits)
+  const [logoUrl, setLogoUrl] = useState<string>('')
+  const [suasVendasApiKey, setSuasVendasApiKey] = useState<string>('')
+  const [lastSync, setLastSync] = useState<string | null>(null)
 
   const handleSetCurrentUser = (id: string) => {
     const user = users.find((u) => u.id === id)
@@ -43,6 +52,26 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const deleteIndustry = (id: string) => setIndustries((prev) => prev.filter((i) => i.id !== id))
 
+  const syncSuasVendas = async () => {
+    if (!suasVendasApiKey) {
+      throw new Error('Configure a API Key primeiro.')
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+
+    const { generateMockVisits } = await import('@/lib/mockData')
+    const externalVisits = generateMockVisits()
+      .slice(0, 10)
+      .map((v) => ({
+        ...v,
+        id: `sv-${Date.now()}-${Math.random()}`,
+        externalId: `suasvendas-${Date.now()}-${Math.random()}`,
+        date: new Date().toISOString(),
+      }))
+
+    importVisits(externalVisits)
+    setLastSync(new Date().toISOString())
+  }
+
   return React.createElement(
     AppContext.Provider,
     {
@@ -52,11 +81,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         clients,
         industries,
         visits,
+        logoUrl,
+        suasVendasApiKey,
+        lastSync,
         setCurrentUser: handleSetCurrentUser,
         addVisit,
         importVisits,
         addIndustry,
         deleteIndustry,
+        setLogoUrl,
+        setSuasVendasApiKey,
+        syncSuasVendas,
       },
     },
     children,

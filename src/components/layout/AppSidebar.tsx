@@ -13,16 +13,24 @@ import useAppStore from '@/stores/useAppStore'
 
 export function AppSidebar() {
   const location = useLocation()
-  const { currentUser } = useAppStore()
+  const { currentUser, logoUrl } = useAppStore()
   const isManager = currentUser.role === 'gestor'
 
   return (
     <Sidebar className="border-r border-border">
       <SidebarHeader className="p-6">
         <Link to="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
-          <div className="w-10 h-10 bg-[#1E40AF] rounded-lg flex items-center justify-center text-primary-foreground shadow-md">
-            <BarChart2 className="w-6 h-6" />
-          </div>
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="ASAF"
+              className="w-10 h-10 object-contain rounded-lg shadow-sm bg-white p-1"
+            />
+          ) : (
+            <div className="w-10 h-10 bg-[#1E40AF] rounded-lg flex items-center justify-center text-primary-foreground shadow-md">
+              <BarChart2 className="w-6 h-6" />
+            </div>
+          )}
           <span className="font-bold text-xl tracking-tight text-foreground">ASAF</span>
         </Link>
       </SidebarHeader>

@@ -14,26 +14,35 @@ export function ManagerDashboard() {
     <div className="space-y-6 animate-fade-in-up">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
-          title="Vendas Totais"
+          title="Vendas (Mês Atual)"
           value={`R$ ${metrics.totalSalesValue.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
           icon={DollarSign}
+          trend={metrics.trends.sales}
         />
         <StatCard
-          title="Comissões Estimadas"
+          title="Comissões (Mês Atual)"
           value={`R$ ${metrics.totalCommission.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
           icon={HandCoins}
+          trend={metrics.trends.commission}
         />
         <StatCard
           title="Conversão (Visitas)"
           value={`${metrics.conversionRate.toFixed(1)}%`}
           icon={Percent}
+          trend={metrics.trends.conversion}
         />
         <StatCard
           title="Ticket Médio"
           value={`R$ ${metrics.averageTicket.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
           icon={Briefcase}
+          trend={metrics.trends.ticket}
         />
-        <StatCard title="Total de Visitas" value={metrics.totalVisitsCount} icon={Target} />
+        <StatCard
+          title="Total de Visitas"
+          value={metrics.totalVisitsCount}
+          icon={Target}
+          trend={metrics.trends.visits}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
