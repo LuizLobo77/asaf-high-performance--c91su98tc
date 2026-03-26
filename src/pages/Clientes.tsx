@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Edit2, Ban, CheckCircle2 } from 'lucide-react'
+import { Plus, Edit2, Ban, CheckCircle2, UploadCloud, DownloadCloud } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -43,8 +43,10 @@ const formatCNPJ = (value: string) => {
 }
 
 export default function Clientes() {
-  const { clients, users, currentUser, addClient, updateClient } = useAppStore()
+  const { clients, users, currentUser, addClient, updateClient, importClients } = useAppStore()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
 
   const [formData, setFormData] = useState({
@@ -160,6 +162,93 @@ export default function Clientes() {
     setIsModalOpen(false)
   }
 
+  const downloadTemplate = () => {
+    const headers = 'Razao_Social,CNPJ,Cidade\n'
+    const blob = new Blob([headers], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', 'template_clientes.csv')
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const processFile = (file: File) => {
+    if (!file.name.endsWith('.csv')) {
+      toast({
+        title: 'Atenção',
+        description: 'Por favor, envie um arquivo no formato CSV.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string
+        const lines = text.split(/\r?\n/).filter((l) => l.trim())
+        if (lines.length < 2) throw new Error('Arquivo vazio ou sem dados.')
+
+        let added = 0
+        let skipped = 0
+        const newClients: Client[] = []
+        const existingCnpjs = new Set(clients.map((c) => c.cnpj).filter(Boolean))
+
+        lines.slice(1).forEach((line, i) => {
+          const parts = line.split(',')
+          if (parts.length < 2) return
+
+          const razaoSocial = parts[0]?.trim().replace(/^"|"$/g, '')
+          const cnpjRaw = parts[1]?.trim().replace(/^"|"$/g, '')
+          const cidade = parts[2] ? parts[2].trim().replace(/^"|"$/g, '') : ''
+
+          if (!razaoSocial || !cnpjRaw) {
+            skipped++
+            return
+          }
+
+          const formattedCnpj = formatCNPJ(cnpjRaw)
+
+          if (existingCnpjs.has(formattedCnpj)) {
+            skipped++
+          } else {
+            existingCnpjs.add(formattedCnpj)
+            newClients.push({
+              id: `c-imp-${Date.now()}-${i}`,
+              name: razaoSocial,
+              cnpj: formattedCnpj,
+              city: cidade,
+              region: cidade,
+              status: 'active',
+              sellerId: currentUser.id,
+            })
+            added++
+          }
+        })
+
+        if (newClients.length > 0) {
+          importClients(newClients)
+        }
+
+        toast({
+          title: 'Importação concluída',
+          description: `${added} clientes adicionados, ${skipped} ignorados (CNPJ duplicado ou inválido).`,
+        })
+        setIsImportModalOpen(false)
+      } catch (err) {
+        toast({
+          title: 'Erro na importação',
+          description: 'O formato do arquivo é inválido ou ocorreu um erro na leitura.',
+          variant: 'destructive',
+        })
+      }
+    }
+    reader.readAsText(file)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -167,9 +256,16 @@ export default function Clientes() {
           <h1 className="text-3xl font-bold tracking-tight text-[#1E40AF]">Clientes</h1>
           <p className="text-muted-foreground mt-1">Gestão da carteira de clientes cadastrados.</p>
         </div>
-        <Button onClick={() => openModal()} className="bg-[#1E40AF] hover:bg-[#1E40AF]/90">
-          <Plus className="w-4 h-4 mr-2" /> Novo Cliente
-        </Button>
+        <div className="flex gap-2">
+          {currentUser.role === 'gestor' && (
+            <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
+              <UploadCloud className="w-4 h-4 mr-2" /> Importar Planilha
+            </Button>
+          )}
+          <Button onClick={() => openModal()} className="bg-[#1E40AF] hover:bg-[#1E40AF]/90">
+            <Plus className="w-4 h-4 mr-2" /> Novo Cliente
+          </Button>
+        </div>
       </div>
 
       <Card className="border-border/50">
@@ -325,6 +421,66 @@ export default function Clientes() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Importar Clientes</DialogTitle>
+            <DialogDescription>
+              Faça o upload de uma planilha CSV para importar clientes em massa.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div
+              className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-colors cursor-pointer
+                ${isDragging ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'}`}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setIsDragging(true)
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault()
+                setIsDragging(false)
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  processFile(e.dataTransfer.files[0])
+                }
+              }}
+              onClick={() => document.getElementById('csv-client-upload')?.click()}
+            >
+              <UploadCloud
+                className={`w-12 h-12 mb-4 ${isDragging ? 'text-[#1E40AF] animate-bounce' : 'text-[#6B7280]'}`}
+              />
+              <h3 className="text-lg font-semibold text-[#1E40AF] mb-1">
+                Arraste seu arquivo CSV aqui
+              </h3>
+              <p className="text-sm text-[#6B7280] mb-4 text-center">
+                ou clique para procurar no seu computador
+              </p>
+              <Button variant="outline" className="pointer-events-none">
+                Selecionar Arquivo
+              </Button>
+              <input
+                type="file"
+                id="csv-client-upload"
+                className="hidden"
+                accept=".csv,.xlsx"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) processFile(e.target.files[0])
+                  e.target.value = ''
+                }}
+              />
+            </div>
+
+            <div className="flex justify-center pt-2">
+              <Button variant="link" onClick={downloadTemplate} className="text-[#1E40AF]">
+                <DownloadCloud className="w-4 h-4 mr-2" />
+                Baixar Planilha Modelo
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

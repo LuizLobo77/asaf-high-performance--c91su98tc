@@ -30,6 +30,7 @@ interface AppState {
   addClient: (client: Client) => void
   updateClient: (id: string, client: Partial<Client>) => void
   deleteClient: (id: string) => void
+  importClients: (newClients: Client[]) => void
   addVisit: (visit: Visit) => void
   importVisits: (newVisits: Visit[]) => void
   addIndustry: (industry: Industry) => void
@@ -99,6 +100,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const deleteClient = (id: string) => {
     setClients((prev) => prev.map((c) => (c.id === id ? { ...c, status: 'inactive' } : c)))
+  }
+
+  const importClients = (newClients: Client[]) => {
+    setClients((prev) => [...prev, ...newClients])
   }
 
   const addVisit = (visit: Visit) => setVisits((prev) => [visit, ...prev])
@@ -171,6 +176,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         addClient,
         updateClient,
         deleteClient,
+        importClients,
         addVisit,
         importVisits,
         addIndustry,
