@@ -13,7 +13,9 @@ export const migrateLocalClientsToPB = async () => {
       try {
         const parsed = JSON.parse(legacyClientsRaw)
         if (Array.isArray(parsed)) localClients = parsed
-      } catch (e) {}
+      } catch (e) {
+        // Ignore JSON parse error and fallback to empty array
+      }
     }
 
     // 2. Try IndexedDB
