@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/hooks/use-toast'
 import useAppStore from '@/stores/useAppStore'
@@ -63,6 +64,7 @@ export default function Clientes() {
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
   const [isBulkDelete, setIsBulkDelete] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showInactive, setShowInactive] = useState(false)
 
   const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set())
   const [isBulkAssignModalOpen, setIsBulkAssignModalOpen] = useState(false)
@@ -78,7 +80,7 @@ export default function Clientes() {
   if (!currentUser) return null
 
   const filteredClients = clients.filter((c) => {
-    if (c.deletedAt) return false
+    if (!showInactive && (c.deletedAt || c.status === 'inactive')) return false
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       return (
@@ -189,18 +191,17 @@ export default function Clientes() {
   const confirmDelete = async () => {
     try {
       if (isBulkDelete) {
-        const count = selectedClientIds.size
         await Promise.all(Array.from(selectedClientIds).map((id) => deleteClient(id)))
         toast({
           title: 'Sucesso',
-          description: `${count} cliente${count === 1 ? '' : 's'} excluído${count === 1 ? '' : 's'} com sucesso.`,
+          description: 'Cliente excluído com sucesso',
         })
         setSelectedClientIds(new Set())
       } else if (clientToDelete) {
         await deleteClient(clientToDelete.id)
         toast({
           title: 'Sucesso',
-          description: '1 cliente excluído com sucesso.',
+          description: 'Cliente excluído com sucesso',
         })
       }
     } catch (e) {
@@ -332,7 +333,7 @@ export default function Clientes() {
               Total de {isClientsLoading ? '...' : displayClients.length} clientes na base.
             </CardDescription>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center w-full">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center w-full justify-between">
             <div className="relative max-w-md w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -342,6 +343,18 @@ export default function Clientes() {
                 className="pl-9"
               />
             </div>
+            {isSuperAdmin && (
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="show-inactive"
+                  checked={showInactive}
+                  onCheckedChange={setShowInactive}
+                />
+                <Label htmlFor="show-inactive" className="cursor-pointer">
+                  Mostrar Inativos
+                </Label>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-2 sm:p-6 sm:pt-0">
@@ -474,46 +487,44 @@ export default function Clientes() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {!client.deletedAt && (
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openModal(client)}
-                              title="Editar"
-                            >
-                              <Edit2 className="w-4 h-4 text-muted-foreground" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleToggleStatus(client)}
-                              title={client.status === 'inactive' ? 'Ativar' : 'Desativar'}
-                              className={
-                                client.status === 'inactive'
-                                  ? 'text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/50'
-                                  : 'text-amber-600 hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50'
-                              }
-                            >
-                              {client.status === 'inactive' ? (
-                                <CheckCircle2 className="w-4 h-4" />
-                              ) : (
-                                <Ban className="w-4 h-4" />
-                              )}
-                            </Button>
-                            {isSuperAdmin && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => openDeleteModal(client)}
-                                title="Excluir"
-                                className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50"
-                              >
-                                <Trash className="w-4 h-4" />
-                              </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openModal(client)}
+                            title="Editar"
+                          >
+                            <Edit2 className="w-4 h-4 text-muted-foreground" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleToggleStatus(client)}
+                            title={client.status === 'inactive' ? 'Ativar' : 'Desativar'}
+                            className={
+                              client.status === 'inactive'
+                                ? 'text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/50'
+                                : 'text-amber-600 hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50'
+                            }
+                          >
+                            {client.status === 'inactive' ? (
+                              <CheckCircle2 className="w-4 h-4" />
+                            ) : (
+                              <Ban className="w-4 h-4" />
                             )}
-                          </div>
-                        )}
+                          </Button>
+                          {isSuperAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openDeleteModal(client)}
+                              title="Excluir"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50"
+                            >
+                              <Trash className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -656,9 +667,9 @@ export default function Clientes() {
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
             <AlertDialogDescription>
               {isBulkDelete
-                ? `Tem certeza que deseja excluir os ${selectedClientIds.size} clientes selecionados? Esta ação não pode ser desfeita.`
+                ? `Excluir ${selectedClientIds.size} clientes selecionados?`
                 : clientToDelete
-                  ? `Tem certeza que deseja excluir o cliente ${clientToDelete.name}? Esta ação não pode ser desfeita.`
+                  ? `Excluir ${clientToDelete.name}? Esta ação não pode ser desfeita.`
                   : 'Tem certeza que deseja excluir? Esta ação não pode ser desfeita.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
