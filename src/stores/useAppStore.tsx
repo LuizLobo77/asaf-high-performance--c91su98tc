@@ -1,7 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { mockUsers } from '@/lib/mockData'
 import type { User, Client, Industry, Visit, CommissionRule, IndustryNote } from '@/lib/types'
-import { api, configApi, clientsDbApi } from '@/lib/api'
+import { api, configApi } from '@/lib/api'
+import {
+  getClients,
+  createClient as createClientService,
+  updateClient as updateClientService,
+  createClientsBatch,
+  mapRecordToClient,
+} from '@/services/clients'
+import { migrateLocalClientsToPB } from '@/lib/migrateClients'
+import { useRealtime } from '@/hooks/use-realtime'
 
 const initializeDb = () => {
   if (api.get('Vendedores').length === 0) {
@@ -57,7 +66,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return saved ? JSON.parse(saved) : null
   })
 
-  // Clients state is now initialized empty and populated asynchronously from the database API
   const [clients, setClients] = useState<Client[]>([])
   const [isClientsLoading, setIsClientsLoading] = useState(true)
 
@@ -89,13 +97,34 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
-  // Fetch clients asynchronously upon initialization
+  useRealtime('clients', (e) => {
+    if (e.action === 'create') {
+      setClients((prev) => {
+        if (prev.find((c) => c.id === e.record.id)) return prev
+        return [...prev, mapRecordToClient(e.record)]
+      })
+    } else if (e.action === 'update') {
+      setClients((prev) =>
+        prev.map((c) => (c.id === e.record.id ? mapRecordToClient(e.record) : c)),
+      )
+    } else if (e.action === 'delete') {
+      setClients((prev) => prev.filter((c) => c.id !== e.record.id))
+    }
+  })
+
   useEffect(() => {
-    clientsDbApi
-      .getAll()
-      .then((data) => setClients(data))
-      .catch((err) => console.error('Failed to fetch clients from database:', err))
-      .finally(() => setIsClientsLoading(false))
+    const initClients = async () => {
+      try {
+        await migrateLocalClientsToPB()
+        const data = await getClients()
+        setClients(data)
+      } catch (err) {
+        console.error('Failed to fetch clients from PB:', err)
+      } finally {
+        setIsClientsLoading(false)
+      }
+    }
+    initClients()
   }, [])
 
   const saveCurrentUser = (user: User | null) => {
@@ -155,35 +184,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const addClient = async (client: Client) => {
-    await clientsDbApi.insert(client)
-    setClients((prev) => [...prev, client])
+    const newClient = await createClientService(client)
+    setClients((prev) => {
+      if (prev.find((c) => c.id === newClient.id)) return prev
+      return [...prev, newClient]
+    })
   }
 
   const updateClient = async (id: string, partial: Partial<Client>) => {
-    const existing = clients.find((c) => c.id === id)
-    if (existing) {
-      const updated = { ...existing, ...partial }
-      await clientsDbApi.update(id, updated)
-      setClients((prev) => prev.map((c) => (c.id === id ? updated : c)))
-    }
+    const updated = await updateClientService(id, partial)
+    setClients((prev) => prev.map((c) => (c.id === id ? updated : c)))
   }
 
   const deleteClient = async (id: string) => {
-    const existing = clients.find((c) => c.id === id)
-    if (existing) {
-      const updated = { ...existing, status: 'inactive' as const }
-      await clientsDbApi.update(id, updated)
-      setClients((prev) => prev.map((c) => (c.id === id ? updated : c)))
-    }
+    const updated = await updateClientService(id, { status: 'inactive' })
+    setClients((prev) => prev.map((c) => (c.id === id ? updated : c)))
   }
 
   const importClients = async (newClients: Client[]) => {
-    await clientsDbApi.insertBatch(newClients)
-    setClients((prev) => {
-      const existingIds = new Set(prev.map((c) => c.id))
-      const uniqueNew = newClients.filter((c) => !existingIds.has(c.id))
-      return [...prev, ...uniqueNew]
-    })
+    await createClientsBatch(newClients)
+    const data = await getClients()
+    setClients(data)
   }
 
   const addVisit = (visit: Visit) => {

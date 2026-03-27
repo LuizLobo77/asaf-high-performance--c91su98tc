@@ -1,0 +1,17 @@
+migrate(
+  (app) => {
+    const users = app.findCollectionByNameOrId('_pb_users_auth_')
+    const record = new Record(users)
+    record.setEmail('luizlobo77@gmail.com')
+    record.setPassword('securepassword123')
+    record.setVerified(true)
+    record.set('name', 'Admin Luiz')
+    app.save(record)
+  },
+  (app) => {
+    try {
+      const record = app.findAuthRecordByEmail('_pb_users_auth_', 'luizlobo77@gmail.com')
+      app.delete(record)
+    } catch (_) {}
+  },
+)
