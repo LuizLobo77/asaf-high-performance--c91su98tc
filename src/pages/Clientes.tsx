@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -28,6 +27,16 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -54,7 +63,6 @@ export default function Clientes() {
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
   const [isBulkDelete, setIsBulkDelete] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [showDeleted, setShowDeleted] = useState(false)
 
   const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set())
   const [isBulkAssignModalOpen, setIsBulkAssignModalOpen] = useState(false)
@@ -70,7 +78,7 @@ export default function Clientes() {
   if (!currentUser) return null
 
   const filteredClients = clients.filter((c) => {
-    if (!showDeleted && c.deletedAt) return false
+    if (c.deletedAt) return false
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       return (
@@ -195,15 +203,16 @@ export default function Clientes() {
           description: '1 cliente excluído com sucesso.',
         })
       }
-      setIsDeleteModalOpen(false)
-      setClientToDelete(null)
-      setIsBulkDelete(false)
     } catch (e) {
       toast({
         title: 'Erro',
         description: 'Erro ao excluir o(s) cliente(s).',
         variant: 'destructive',
       })
+    } finally {
+      setIsDeleteModalOpen(false)
+      setClientToDelete(null)
+      setIsBulkDelete(false)
     }
   }
 
@@ -333,14 +342,6 @@ export default function Clientes() {
                 className="pl-9"
               />
             </div>
-            {isSuperAdmin && (
-              <div className="flex items-center space-x-2 shrink-0">
-                <Switch id="show-deleted" checked={showDeleted} onCheckedChange={setShowDeleted} />
-                <Label htmlFor="show-deleted" className="whitespace-nowrap cursor-pointer">
-                  Mostrar Excluídos
-                </Label>
-              </div>
-            )}
           </div>
         </CardHeader>
         <CardContent className="p-2 sm:p-6 sm:pt-0">
@@ -649,38 +650,34 @@ export default function Clientes() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-[425px] rounded-lg">
-          <DialogHeader>
-            <DialogTitle>Confirmar Exclusão</DialogTitle>
-            <DialogDescription>
+      <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <AlertDialogContent className="w-[95vw] sm:max-w-[425px] rounded-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
               {isBulkDelete
                 ? `Tem certeza que deseja excluir os ${selectedClientIds.size} clientes selecionados? Esta ação não pode ser desfeita.`
                 : clientToDelete
                   ? `Tem certeza que deseja excluir o cliente ${clientToDelete.name}? Esta ação não pode ser desfeita.`
                   : 'Tem certeza que deseja excluir? Esta ação não pode ser desfeita.'}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-2">
-            <Button
-              type="button"
-              variant="outline"
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="pt-4 flex flex-col sm:flex-row gap-2">
+            <AlertDialogCancel
               onClick={() => setIsDeleteModalOpen(false)}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto mt-0"
             >
               Cancelar
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
+            </AlertDialogCancel>
+            <AlertDialogAction
               onClick={confirmDelete}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
             >
               Excluir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

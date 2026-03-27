@@ -16,7 +16,10 @@ export function mapRecordToClient(record: any): Client {
 }
 
 export const getClients = async (): Promise<Client[]> => {
-  const records = await pb.collection('clients').getFullList({ sort: '-created' })
+  const records = await pb.collection('clients').getFullList({
+    sort: '-created',
+    filter: 'deletedAt = ""',
+  })
   return records.map(mapRecordToClient)
 }
 

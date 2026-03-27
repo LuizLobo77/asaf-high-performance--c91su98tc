@@ -99,14 +99,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   useRealtime('clients', (e) => {
     if (e.action === 'create') {
+      if (e.record.deletedAt) return
       setClients((prev) => {
         if (prev.find((c) => c.id === e.record.id)) return prev
         return [...prev, mapRecordToClient(e.record)]
       })
     } else if (e.action === 'update') {
-      setClients((prev) =>
-        prev.map((c) => (c.id === e.record.id ? mapRecordToClient(e.record) : c)),
-      )
+      if (e.record.deletedAt) {
+        setClients((prev) => prev.filter((c) => c.id !== e.record.id))
+      } else {
+        setClients((prev) =>
+          prev.map((c) => (c.id === e.record.id ? mapRecordToClient(e.record) : c)),
+        )
+      }
     } else if (e.action === 'delete') {
       setClients((prev) => prev.filter((c) => c.id !== e.record.id))
     }
@@ -197,11 +202,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const deleteClient = async (id: string) => {
-    const updated = await updateClientService(id, {
+    await updateClientService(id, {
       status: 'inactive',
       deletedAt: new Date().toISOString(),
     })
-    setClients((prev) => prev.map((c) => (c.id === id ? updated : c)))
+    setClients((prev) => prev.filter((c) => c.id !== id))
   }
 
   const importClients = async (newClients: Client[]) => {
