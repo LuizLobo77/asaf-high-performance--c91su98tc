@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -53,6 +54,7 @@ export default function Clientes() {
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
   const [isBulkDelete, setIsBulkDelete] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showDeleted, setShowDeleted] = useState(false)
 
   const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set())
   const [isBulkAssignModalOpen, setIsBulkAssignModalOpen] = useState(false)
@@ -67,9 +69,8 @@ export default function Clientes() {
 
   if (!currentUser) return null
 
-  // Soft deleted clients are excluded from the main view
   const filteredClients = clients.filter((c) => {
-    if (c.deletedAt) return false
+    if (!showDeleted && c.deletedAt) return false
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       return (
@@ -180,17 +181,18 @@ export default function Clientes() {
   const confirmDelete = async () => {
     try {
       if (isBulkDelete) {
+        const count = selectedClientIds.size
         await Promise.all(Array.from(selectedClientIds).map((id) => deleteClient(id)))
         toast({
           title: 'Sucesso',
-          description: 'Clientes excluídos com sucesso.',
+          description: `${count} cliente${count === 1 ? '' : 's'} excluído${count === 1 ? '' : 's'} com sucesso.`,
         })
         setSelectedClientIds(new Set())
       } else if (clientToDelete) {
         await deleteClient(clientToDelete.id)
         toast({
           title: 'Sucesso',
-          description: 'Cliente excluído com sucesso.',
+          description: '1 cliente excluído com sucesso.',
         })
       }
       setIsDeleteModalOpen(false)
@@ -284,18 +286,16 @@ export default function Clientes() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          {hasAdminAccess && selectedClientIds.size > 0 && (
+          {isSuperAdmin && selectedClientIds.size > 0 && (
             <>
-              {isSuperAdmin && (
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-auto text-red-600 border-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                  onClick={() => openDeleteModal(null)}
-                >
-                  <Trash className="w-4 h-4 mr-2" />
-                  Excluir Selecionados ({selectedClientIds.size})
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto text-red-600 border-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                onClick={() => openDeleteModal(null)}
+              >
+                <Trash className="w-4 h-4 mr-2" />
+                Excluir Selecionados ({selectedClientIds.size})
+              </Button>
               <Button
                 variant="outline"
                 className="w-full sm:w-auto text-[#1E40AF] border-[#1E40AF] hover:bg-[#1E40AF]/10"
@@ -323,14 +323,24 @@ export default function Clientes() {
               Total de {isClientsLoading ? '...' : displayClients.length} clientes na base.
             </CardDescription>
           </div>
-          <div className="relative max-w-md w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, CNPJ ou cidade..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center w-full">
+            <div className="relative max-w-md w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome, CNPJ ou cidade..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            {isSuperAdmin && (
+              <div className="flex items-center space-x-2 shrink-0">
+                <Switch id="show-deleted" checked={showDeleted} onCheckedChange={setShowDeleted} />
+                <Label htmlFor="show-deleted" className="whitespace-nowrap cursor-pointer">
+                  Mostrar Excluídos
+                </Label>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-2 sm:p-6 sm:pt-0">
@@ -338,7 +348,7 @@ export default function Clientes() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {hasAdminAccess && (
+                  {isSuperAdmin && (
                     <TableHead className="w-[40px] px-4">
                       <Checkbox
                         checked={
@@ -362,7 +372,7 @@ export default function Clientes() {
                 {isClientsLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      {hasAdminAccess && (
+                      {isSuperAdmin && (
                         <TableCell className="px-4">
                           <Skeleton className="h-4 w-4" />
                         </TableCell>
@@ -393,7 +403,7 @@ export default function Clientes() {
                 ) : displayClients.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={hasAdminAccess ? 7 : 5}
+                      colSpan={hasAdminAccess ? (isSuperAdmin ? 7 : 6) : 5}
                       className="text-center text-muted-foreground py-12"
                     >
                       Nenhum cliente encontrado.
@@ -401,8 +411,8 @@ export default function Clientes() {
                   </TableRow>
                 ) : (
                   displayClients.map((client) => (
-                    <TableRow key={client.id}>
-                      {hasAdminAccess && (
+                    <TableRow key={client.id} className={client.deletedAt ? 'opacity-60' : ''}>
+                      {isSuperAdmin && (
                         <TableCell className="px-4">
                           <Checkbox
                             checked={selectedClientIds.has(client.id)}
@@ -442,56 +452,67 @@ export default function Clientes() {
                         </TableCell>
                       )}
                       <TableCell>
-                        <Badge
-                          variant={client.status === 'inactive' ? 'secondary' : 'outline'}
-                          className={
-                            client.status === 'inactive'
-                              ? ''
-                              : 'border-green-500/50 text-green-600 bg-green-50 dark:bg-green-950 dark:text-green-400'
-                          }
-                        >
-                          {client.status === 'inactive' ? 'Inativo' : 'Ativo'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openModal(client)}
-                            title="Editar"
+                        {client.deletedAt ? (
+                          <Badge
+                            variant="outline"
+                            className="border-red-500/50 text-red-600 bg-red-50 dark:bg-red-950 dark:text-red-400"
                           >
-                            <Edit2 className="w-4 h-4 text-muted-foreground" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleToggleStatus(client)}
-                            title={client.status === 'inactive' ? 'Ativar' : 'Desativar'}
+                            Excluído
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant={client.status === 'inactive' ? 'secondary' : 'outline'}
                             className={
                               client.status === 'inactive'
-                                ? 'text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/50'
-                                : 'text-amber-600 hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50'
+                                ? ''
+                                : 'border-green-500/50 text-green-600 bg-green-50 dark:bg-green-950 dark:text-green-400'
                             }
                           >
-                            {client.status === 'inactive' ? (
-                              <CheckCircle2 className="w-4 h-4" />
-                            ) : (
-                              <Ban className="w-4 h-4" />
-                            )}
-                          </Button>
-                          {isSuperAdmin && (
+                            {client.status === 'inactive' ? 'Inativo' : 'Ativo'}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {!client.deletedAt && (
+                          <div className="flex justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => openDeleteModal(client)}
-                              title="Excluir"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50"
+                              onClick={() => openModal(client)}
+                              title="Editar"
                             >
-                              <Trash className="w-4 h-4" />
+                              <Edit2 className="w-4 h-4 text-muted-foreground" />
                             </Button>
-                          )}
-                        </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleToggleStatus(client)}
+                              title={client.status === 'inactive' ? 'Ativar' : 'Desativar'}
+                              className={
+                                client.status === 'inactive'
+                                  ? 'text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/50'
+                                  : 'text-amber-600 hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50'
+                              }
+                            >
+                              {client.status === 'inactive' ? (
+                                <CheckCircle2 className="w-4 h-4" />
+                              ) : (
+                                <Ban className="w-4 h-4" />
+                              )}
+                            </Button>
+                            {isSuperAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openDeleteModal(client)}
+                                title="Excluir"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50"
+                              >
+                                <Trash className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
