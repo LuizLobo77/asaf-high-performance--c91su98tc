@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { toast } from '@/hooks/use-toast'
 import useAppStore from '@/stores/useAppStore'
 import { Client } from '@/lib/types'
-import { fixMalformedUTF8 } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -119,7 +118,6 @@ export default function ClientImport() {
     setReport(null)
 
     try {
-      // Use FileReader explicitly forcing UTF-8 decoding to ensure standard character handling
       const text = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = (e) => resolve(e.target?.result as string)
@@ -127,7 +125,6 @@ export default function ClientImport() {
         reader.readAsText(file, 'UTF-8')
       })
 
-      // Auto-detect separator
       const sample = text.slice(0, 1000)
       const separator =
         (sample.match(/;/g)?.length || 0) > (sample.match(/,/g)?.length || 0) ? ';' : ','
@@ -141,17 +138,17 @@ export default function ClientImport() {
       const existingCnpjs = new Set(clients.map((c) => c.cnpj?.replace(/\D/g, '')).filter(Boolean))
       const fileCnpjs = new Set<string>()
 
-      let totalLido = rows.length - 1 // Exclude header
+      let totalLido = rows.length - 1
 
       rows.slice(1).forEach((cols, i) => {
         const lineNum = i + 2
-        // Clean encoding for malformed inputs directly to guarantee readable UI
-        const name = fixMalformedUTF8(cols[0] || '')
+
+        const name = cols[0] || ''
         const cnpjRaw = cols[1] || ''
-        const city = fixMalformedUTF8(cols[2] || '')
+        const city = cols[2] || ''
 
         if (!name && !cnpjRaw && !city) {
-          totalLido-- // Adjust for empty trailing rows
+          totalLido--
           return
         }
 

@@ -1,4 +1,4 @@
-export type Role = 'gestor' | 'vendedor'
+export type Role = 'Admin' | 'gestor' | 'vendedor'
 export type VisitResult = 'Venda' | 'Sem Venda' | 'Agendamento'
 
 export interface User {
@@ -22,6 +22,7 @@ export interface Client {
   status?: 'active' | 'inactive'
   lastPurchase?: string
   sellerId: string
+  deletedAt?: string
 }
 
 export interface Industry {
@@ -43,7 +44,7 @@ export interface VisitItem {
   industryId: string
   result: VisitResult
   value?: number
-  commissionSnapshot?: number // Saved as a static snapshot at the time of order creation
+  commissionSnapshot?: number
 }
 
 export interface Visit {

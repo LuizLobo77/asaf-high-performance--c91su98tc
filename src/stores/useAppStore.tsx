@@ -197,7 +197,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const deleteClient = async (id: string) => {
-    const updated = await updateClientService(id, { status: 'inactive' })
+    const updated = await updateClientService(id, {
+      status: 'inactive',
+      deletedAt: new Date().toISOString(),
+    })
     setClients((prev) => prev.map((c) => (c.id === id ? updated : c)))
   }
 

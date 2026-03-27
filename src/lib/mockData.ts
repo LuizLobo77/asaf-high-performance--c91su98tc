@@ -1,12 +1,11 @@
 import type { User, Client, Industry, Visit, CommissionRule } from './types'
 
-// Purged all mock data except for one primary administrator to allow access to the clean slate environment.
 export const mockUsers: User[] = [
   {
     id: 'u1',
     name: 'Administrador Asaf',
     email: 'carlos@asaf.com',
-    role: 'gestor',
+    role: 'Admin',
     target: 0,
     status: 'active',
     phone: '(11) 99999-0000',

@@ -11,6 +11,7 @@ export function mapRecordToClient(record: any): Client {
     status: record.status || 'active',
     lastPurchase: record.lastPurchase,
     sellerId: record.sellerId || '',
+    deletedAt: record.deletedAt,
   }
 }
 
@@ -28,6 +29,7 @@ export const createClient = async (data: Partial<Client>): Promise<Client> => {
     status: data.status || 'active',
     sellerId: data.sellerId,
     lastPurchase: data.lastPurchase,
+    deletedAt: data.deletedAt,
   }
   Object.keys(payload).forEach(
     (key) =>
@@ -48,6 +50,7 @@ export const updateClient = async (id: string, data: Partial<Client>): Promise<C
     status: data.status,
     sellerId: data.sellerId,
     lastPurchase: data.lastPurchase,
+    deletedAt: data.deletedAt,
   }
   Object.keys(payload).forEach(
     (key) =>
@@ -79,6 +82,7 @@ export const createClientsBatch = async (clients: Partial<Client>[]): Promise<vo
           status: c.status || 'active',
           sellerId: c.sellerId,
           lastPurchase: c.lastPurchase,
+          deletedAt: c.deletedAt,
         }
         Object.keys(payload).forEach(
           (key) =>

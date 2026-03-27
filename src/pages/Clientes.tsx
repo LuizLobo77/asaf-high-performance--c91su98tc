@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Edit2, Ban, CheckCircle2, Users, Search, Wand2 } from 'lucide-react'
+import { Plus, Edit2, Ban, CheckCircle2, Users, Search, Trash } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -33,7 +33,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/hooks/use-toast'
 import useAppStore from '@/stores/useAppStore'
 import { Client } from '@/lib/types'
-import { fixMalformedUTF8 } from '@/lib/utils'
 
 const formatCNPJ = (value: string) => {
   return value
@@ -46,9 +45,12 @@ const formatCNPJ = (value: string) => {
 }
 
 export default function Clientes() {
-  const { clients, users, currentUser, addClient, updateClient, isClientsLoading } = useAppStore()
+  const { clients, users, currentUser, addClient, updateClient, deleteClient, isClientsLoading } =
+    useAppStore()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
   const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set())
@@ -65,6 +67,7 @@ export default function Clientes() {
   if (!currentUser) return null
 
   const filteredClients = clients.filter((c) => {
+    if (c.deletedAt) return false
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       return (
@@ -74,11 +77,11 @@ export default function Clientes() {
     return true
   })
 
-  // Vendor can only see their own clients OR clients with no vendor ("Carteira Livre")
-  const displayClients =
-    currentUser.role === 'gestor'
-      ? filteredClients
-      : filteredClients.filter((c) => c.sellerId === currentUser.id || !c.sellerId)
+  const hasAdminAccess = currentUser.role === 'Admin' || currentUser.role === 'gestor'
+
+  const displayClients = hasAdminAccess
+    ? filteredClients
+    : filteredClients.filter((c) => c.sellerId === currentUser.id || !c.sellerId)
 
   const sellers = users.filter((u) => u.role === 'vendedor')
   const getSellerName = (id: string) => users.find((u) => u.id === id)?.name || 'N/A'
@@ -136,50 +139,6 @@ export default function Clientes() {
     setSelectedClientIds(newSet)
   }
 
-  const handleFixEncoding = async () => {
-    if (selectedClientIds.size === 0) return
-    try {
-      let updatedCount = 0
-      await Promise.all(
-        Array.from(selectedClientIds).map(async (id) => {
-          const client = clients.find((c) => c.id === id)
-          if (client) {
-            const fixedName = fixMalformedUTF8(client.name)
-            const fixedCity = fixMalformedUTF8(client.city || '')
-            const fixedRegion = fixMalformedUTF8(client.region || '')
-            if (
-              fixedName !== client.name ||
-              fixedCity !== client.city ||
-              fixedRegion !== client.region
-            ) {
-              await updateClient(id, { name: fixedName, city: fixedCity, region: fixedRegion })
-              updatedCount++
-            }
-          }
-        }),
-      )
-
-      if (updatedCount > 0) {
-        toast({
-          title: 'Sucesso',
-          description: `${updatedCount} registro(s) com texto corrigido com sucesso.`,
-        })
-      } else {
-        toast({
-          title: 'Aviso',
-          description: 'Nenhum dos clientes selecionados necessitava de correção de codificação.',
-        })
-      }
-      setSelectedClientIds(new Set())
-    } catch (e) {
-      toast({
-        title: 'Erro',
-        description: 'Falha ao corrigir codificação.',
-        variant: 'destructive',
-      })
-    }
-  }
-
   const handleBulkAssign = async () => {
     if (!bulkSellerId) return
     try {
@@ -199,6 +158,25 @@ export default function Clientes() {
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar clientes em lote no banco de dados.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const confirmDelete = async () => {
+    if (!clientToDelete) return
+    try {
+      await deleteClient(clientToDelete.id)
+      toast({
+        title: 'Sucesso',
+        description: 'Cliente inativado e excluído logicamente com sucesso.',
+      })
+      setIsDeleteModalOpen(false)
+      setClientToDelete(null)
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao excluir o cliente.',
         variant: 'destructive',
       })
     }
@@ -225,12 +203,11 @@ export default function Clientes() {
       return
     }
 
-    const finalSellerId =
-      currentUser.role === 'gestor'
-        ? formData.sellerId === 'unassigned'
-          ? ''
-          : formData.sellerId
-        : currentUser.id
+    const finalSellerId = hasAdminAccess
+      ? formData.sellerId === 'unassigned'
+        ? ''
+        : formData.sellerId
+      : currentUser.id
 
     const isDuplicate = clients.some((c) => c.cnpj === formData.cnpj && c.id !== editingClient?.id)
     if (isDuplicate) {
@@ -284,26 +261,15 @@ export default function Clientes() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          {currentUser.role === 'gestor' && selectedClientIds.size > 0 && (
-            <>
-              <Button
-                variant="outline"
-                className="w-full sm:w-auto text-amber-600 border-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50"
-                onClick={handleFixEncoding}
-                title="Corrigir erros de codificação como 'SÃ£o Paulo' para 'São Paulo'"
-              >
-                <Wand2 className="w-4 h-4 mr-2" />
-                Corrigir Textos
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full sm:w-auto text-[#1E40AF] border-[#1E40AF] hover:bg-[#1E40AF]/10"
-                onClick={() => setIsBulkAssignModalOpen(true)}
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Atribuir ({selectedClientIds.size})
-              </Button>
-            </>
+          {hasAdminAccess && selectedClientIds.size > 0 && (
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto text-[#1E40AF] border-[#1E40AF] hover:bg-[#1E40AF]/10"
+              onClick={() => setIsBulkAssignModalOpen(true)}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Atribuir ({selectedClientIds.size})
+            </Button>
           )}
           <Button
             onClick={() => openModal()}
@@ -337,7 +303,7 @@ export default function Clientes() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {currentUser.role === 'gestor' && (
+                  {hasAdminAccess && (
                     <TableHead className="w-[40px] px-4">
                       <Checkbox
                         checked={
@@ -352,9 +318,7 @@ export default function Clientes() {
                   <TableHead className="min-w-[200px]">Razão Social</TableHead>
                   <TableHead className="min-w-[160px]">CNPJ</TableHead>
                   <TableHead className="min-w-[140px]">Cidade</TableHead>
-                  {currentUser.role === 'gestor' && (
-                    <TableHead className="min-w-[160px]">Vendedor</TableHead>
-                  )}
+                  {hasAdminAccess && <TableHead className="min-w-[160px]">Vendedor</TableHead>}
                   <TableHead className="min-w-[100px]">Status</TableHead>
                   <TableHead className="min-w-[100px] text-right">Ações</TableHead>
                 </TableRow>
@@ -363,7 +327,7 @@ export default function Clientes() {
                 {isClientsLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      {currentUser.role === 'gestor' && (
+                      {hasAdminAccess && (
                         <TableCell className="px-4">
                           <Skeleton className="h-4 w-4" />
                         </TableCell>
@@ -377,7 +341,7 @@ export default function Clientes() {
                       <TableCell>
                         <Skeleton className="h-4 w-[100px]" />
                       </TableCell>
-                      {currentUser.role === 'gestor' && (
+                      {hasAdminAccess && (
                         <TableCell>
                           <Skeleton className="h-4 w-[130px]" />
                         </TableCell>
@@ -394,7 +358,7 @@ export default function Clientes() {
                 ) : displayClients.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={currentUser.role === 'gestor' ? 7 : 5}
+                      colSpan={hasAdminAccess ? 7 : 5}
                       className="text-center text-muted-foreground py-12"
                     >
                       Nenhum cliente encontrado.
@@ -403,7 +367,7 @@ export default function Clientes() {
                 ) : (
                   displayClients.map((client) => (
                     <TableRow key={client.id}>
-                      {currentUser.role === 'gestor' && (
+                      {hasAdminAccess && (
                         <TableCell className="px-4">
                           <Checkbox
                             checked={selectedClientIds.has(client.id)}
@@ -433,7 +397,7 @@ export default function Clientes() {
                       <TableCell className="text-muted-foreground">
                         {client.city || client.region}
                       </TableCell>
-                      {currentUser.role === 'gestor' && (
+                      {hasAdminAccess && (
                         <TableCell className="text-muted-foreground">
                           {client.sellerId ? (
                             getSellerName(client.sellerId)
@@ -472,7 +436,7 @@ export default function Clientes() {
                             className={
                               client.status === 'inactive'
                                 ? 'text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/50'
-                                : 'text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50'
+                                : 'text-amber-600 hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50'
                             }
                           >
                             {client.status === 'inactive' ? (
@@ -481,6 +445,20 @@ export default function Clientes() {
                               <Ban className="w-4 h-4" />
                             )}
                           </Button>
+                          {currentUser.role === 'Admin' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setClientToDelete(client)
+                                setIsDeleteModalOpen(true)
+                              }}
+                              title="Excluir"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50"
+                            >
+                              <Trash className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -533,7 +511,7 @@ export default function Clientes() {
                 required
               />
             </div>
-            {currentUser.role === 'gestor' && (
+            {hasAdminAccess && (
               <div className="space-y-2">
                 <Label htmlFor="sellerId">Vendedor Responsável</Label>
                 <Select
@@ -615,6 +593,36 @@ export default function Clientes() {
               </Button>
             </DialogFooter>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-[425px] rounded-lg">
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir o cliente {clientToDelete?.name}? Esta ação não pode
+              ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={confirmDelete}
+              className="w-full sm:w-auto"
+            >
+              Excluir
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
