@@ -51,6 +51,7 @@ export default function Clientes() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
+  const [isBulkDelete, setIsBulkDelete] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
   const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set())
@@ -78,6 +79,7 @@ export default function Clientes() {
   })
 
   const hasAdminAccess = currentUser.role === 'Admin' || currentUser.role === 'gestor'
+  const isSuperAdmin = currentUser.role === 'Admin'
 
   const displayClients = hasAdminAccess
     ? filteredClients
@@ -105,6 +107,17 @@ export default function Clientes() {
       })
     }
     setIsModalOpen(true)
+  }
+
+  const openDeleteModal = (client: Client | null) => {
+    if (client) {
+      setClientToDelete(client)
+      setIsBulkDelete(false)
+    } else {
+      setClientToDelete(null)
+      setIsBulkDelete(true)
+    }
+    setIsDeleteModalOpen(true)
   }
 
   const handleToggleStatus = async (client: Client) => {
@@ -164,19 +177,28 @@ export default function Clientes() {
   }
 
   const confirmDelete = async () => {
-    if (!clientToDelete) return
     try {
-      await deleteClient(clientToDelete.id)
-      toast({
-        title: 'Sucesso',
-        description: 'Cliente inativado e excluído logicamente com sucesso.',
-      })
+      if (isBulkDelete) {
+        await Promise.all(Array.from(selectedClientIds).map((id) => deleteClient(id)))
+        toast({
+          title: 'Sucesso',
+          description: 'Clientes excluídos logicamente com sucesso.',
+        })
+        setSelectedClientIds(new Set())
+      } else if (clientToDelete) {
+        await deleteClient(clientToDelete.id)
+        toast({
+          title: 'Sucesso',
+          description: 'Cliente excluído logicamente com sucesso.',
+        })
+      }
       setIsDeleteModalOpen(false)
       setClientToDelete(null)
+      setIsBulkDelete(false)
     } catch (e) {
       toast({
         title: 'Erro',
-        description: 'Erro ao excluir o cliente.',
+        description: 'Erro ao excluir o(s) cliente(s).',
         variant: 'destructive',
       })
     }
@@ -262,14 +284,26 @@ export default function Clientes() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           {hasAdminAccess && selectedClientIds.size > 0 && (
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto text-[#1E40AF] border-[#1E40AF] hover:bg-[#1E40AF]/10"
-              onClick={() => setIsBulkAssignModalOpen(true)}
-            >
-              <Users className="w-4 h-4 mr-2" />
-              Atribuir ({selectedClientIds.size})
-            </Button>
+            <>
+              {isSuperAdmin && (
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto text-red-600 border-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                  onClick={() => openDeleteModal(null)}
+                >
+                  <Trash className="w-4 h-4 mr-2" />
+                  Excluir Selecionados ({selectedClientIds.size})
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto text-[#1E40AF] border-[#1E40AF] hover:bg-[#1E40AF]/10"
+                onClick={() => setIsBulkAssignModalOpen(true)}
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Atribuir ({selectedClientIds.size})
+              </Button>
+            </>
           )}
           <Button
             onClick={() => openModal()}
@@ -445,14 +479,11 @@ export default function Clientes() {
                               <Ban className="w-4 h-4" />
                             )}
                           </Button>
-                          {currentUser.role === 'Admin' && (
+                          {isSuperAdmin && (
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => {
-                                setClientToDelete(client)
-                                setIsDeleteModalOpen(true)
-                              }}
+                              onClick={() => openDeleteModal(client)}
                               title="Excluir"
                               className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50"
                             >
@@ -601,8 +632,8 @@ export default function Clientes() {
           <DialogHeader>
             <DialogTitle>Confirmar Exclusão</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja excluir o cliente {clientToDelete?.name}? Esta ação não pode
-              ser desfeita.
+              Tem certeza que deseja excluir o(s) cliente(s) selecionado(s)? Esta ação não pode ser
+              desfeita.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-2">
