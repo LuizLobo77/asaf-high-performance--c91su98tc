@@ -118,12 +118,10 @@ export default function ClientImport() {
     setReport(null)
 
     try {
-      const text = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = (e) => resolve(e.target?.result as string)
-        reader.onerror = () => reject(new Error('Erro ao ler o arquivo.'))
-        reader.readAsText(file, 'UTF-8')
-      })
+      // Explicitly decode as UTF-8 to preserve all Brazilian Portuguese special characters
+      const buffer = await file.arrayBuffer()
+      const decoder = new TextDecoder('utf-8', { fatal: false })
+      const text = decoder.decode(buffer)
 
       const sample = text.slice(0, 1000)
       const separator =

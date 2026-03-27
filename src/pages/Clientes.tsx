@@ -67,6 +67,7 @@ export default function Clientes() {
 
   if (!currentUser) return null
 
+  // Soft deleted clients are excluded from the main view
   const filteredClients = clients.filter((c) => {
     if (c.deletedAt) return false
     if (searchQuery) {
@@ -182,14 +183,14 @@ export default function Clientes() {
         await Promise.all(Array.from(selectedClientIds).map((id) => deleteClient(id)))
         toast({
           title: 'Sucesso',
-          description: 'Clientes excluídos logicamente com sucesso.',
+          description: 'Clientes excluídos com sucesso.',
         })
         setSelectedClientIds(new Set())
       } else if (clientToDelete) {
         await deleteClient(clientToDelete.id)
         toast({
           title: 'Sucesso',
-          description: 'Cliente excluído logicamente com sucesso.',
+          description: 'Cliente excluído com sucesso.',
         })
       }
       setIsDeleteModalOpen(false)
@@ -632,8 +633,11 @@ export default function Clientes() {
           <DialogHeader>
             <DialogTitle>Confirmar Exclusão</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja excluir o(s) cliente(s) selecionado(s)? Esta ação não pode ser
-              desfeita.
+              {isBulkDelete
+                ? `Tem certeza que deseja excluir os ${selectedClientIds.size} clientes selecionados? Esta ação não pode ser desfeita.`
+                : clientToDelete
+                  ? `Tem certeza que deseja excluir o cliente ${clientToDelete.name}? Esta ação não pode ser desfeita.`
+                  : 'Tem certeza que deseja excluir? Esta ação não pode ser desfeita.'}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-2">
