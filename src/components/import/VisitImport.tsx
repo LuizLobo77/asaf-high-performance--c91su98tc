@@ -149,7 +149,8 @@ export default function VisitImport() {
         })
       }
     }
-    reader.readAsText(file)
+    // Explictly use UTF-8 representation to handle special characters effectively
+    reader.readAsText(file, 'UTF-8')
   }
 
   return (

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { toast } from '@/hooks/use-toast'
 import useAppStore from '@/stores/useAppStore'
 import { Client } from '@/lib/types'
+import { fixMalformedUTF8 } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -118,7 +119,14 @@ export default function ClientImport() {
     setReport(null)
 
     try {
-      const text = await file.text()
+      // Use FileReader explicitly forcing UTF-8 decoding to ensure standard character handling
+      const text = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = (e) => resolve(e.target?.result as string)
+        reader.onerror = () => reject(new Error('Erro ao ler o arquivo.'))
+        reader.readAsText(file, 'UTF-8')
+      })
+
       // Auto-detect separator
       const sample = text.slice(0, 1000)
       const separator =
@@ -137,9 +145,10 @@ export default function ClientImport() {
 
       rows.slice(1).forEach((cols, i) => {
         const lineNum = i + 2
-        const name = cols[0] || ''
+        // Clean encoding for malformed inputs directly to guarantee readable UI
+        const name = fixMalformedUTF8(cols[0] || '')
         const cnpjRaw = cols[1] || ''
-        const city = cols[2] || ''
+        const city = fixMalformedUTF8(cols[2] || '')
 
         if (!name && !cnpjRaw && !city) {
           totalLido-- // Adjust for empty trailing rows
@@ -158,7 +167,6 @@ export default function ClientImport() {
           return errors.push({ line: lineNum, message: 'CNPJ é obrigatório' })
         }
 
-        // Fix for Excel dropping leading zeros on CNPJs
         if (cnpjStr.length > 0 && cnpjStr.length < 14) {
           cnpjStr = cnpjStr.padStart(14, '0')
         }
@@ -191,7 +199,6 @@ export default function ClientImport() {
         })
       })
 
-      // Database insertion process handled in batches
       const batches = []
       for (let i = 0; i < validClients.length; i += 100) {
         batches.push(validClients.slice(i, i + 100))
@@ -215,7 +222,7 @@ export default function ClientImport() {
             description: 'O processo foi interrompido devido a uma falha no banco de dados.',
             variant: 'destructive',
           })
-          break // Halt insertion on database failure
+          break
         }
       }
 

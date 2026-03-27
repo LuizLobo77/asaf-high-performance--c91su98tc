@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Edit2, Ban, CheckCircle2, Users, Search } from 'lucide-react'
+import { Plus, Edit2, Ban, CheckCircle2, Users, Search, Wand2 } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -33,6 +33,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/hooks/use-toast'
 import useAppStore from '@/stores/useAppStore'
 import { Client } from '@/lib/types'
+import { fixMalformedUTF8 } from '@/lib/utils'
 
 const formatCNPJ = (value: string) => {
   return value
@@ -133,6 +134,50 @@ export default function Clientes() {
     if (checked) newSet.add(id)
     else newSet.delete(id)
     setSelectedClientIds(newSet)
+  }
+
+  const handleFixEncoding = async () => {
+    if (selectedClientIds.size === 0) return
+    try {
+      let updatedCount = 0
+      await Promise.all(
+        Array.from(selectedClientIds).map(async (id) => {
+          const client = clients.find((c) => c.id === id)
+          if (client) {
+            const fixedName = fixMalformedUTF8(client.name)
+            const fixedCity = fixMalformedUTF8(client.city || '')
+            const fixedRegion = fixMalformedUTF8(client.region || '')
+            if (
+              fixedName !== client.name ||
+              fixedCity !== client.city ||
+              fixedRegion !== client.region
+            ) {
+              await updateClient(id, { name: fixedName, city: fixedCity, region: fixedRegion })
+              updatedCount++
+            }
+          }
+        }),
+      )
+
+      if (updatedCount > 0) {
+        toast({
+          title: 'Sucesso',
+          description: `${updatedCount} registro(s) com texto corrigido com sucesso.`,
+        })
+      } else {
+        toast({
+          title: 'Aviso',
+          description: 'Nenhum dos clientes selecionados necessitava de correção de codificação.',
+        })
+      }
+      setSelectedClientIds(new Set())
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Falha ao corrigir codificação.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const handleBulkAssign = async () => {
@@ -240,14 +285,25 @@ export default function Clientes() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           {currentUser.role === 'gestor' && selectedClientIds.size > 0 && (
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto text-[#1E40AF] border-[#1E40AF] hover:bg-[#1E40AF]/10"
-              onClick={() => setIsBulkAssignModalOpen(true)}
-            >
-              <Users className="w-4 h-4 mr-2" />
-              Atribuir ({selectedClientIds.size})
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto text-amber-600 border-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50"
+                onClick={handleFixEncoding}
+                title="Corrigir erros de codificação como 'SÃ£o Paulo' para 'São Paulo'"
+              >
+                <Wand2 className="w-4 h-4 mr-2" />
+                Corrigir Textos
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto text-[#1E40AF] border-[#1E40AF] hover:bg-[#1E40AF]/10"
+                onClick={() => setIsBulkAssignModalOpen(true)}
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Atribuir ({selectedClientIds.size})
+              </Button>
+            </>
           )}
           <Button
             onClick={() => openModal()}
