@@ -70,13 +70,14 @@ export const deleteClient = async (id: string): Promise<void> => {
 }
 
 export const createClientsBatch = async (clients: Partial<Client>[]): Promise<void> => {
-  const chunks = []
-  for (let i = 0; i < clients.length; i += 50) {
-    chunks.push(clients.slice(i, i + 50))
-  }
-  for (const chunk of chunks) {
-    await Promise.all(
-      chunk.map((c) => {
+  const chunkSize = 5 // Process in smaller batches to avoid rate limiting (429 Too Many Requests)
+
+  for (let i = 0; i < clients.length; i += chunkSize) {
+    const chunk = clients.slice(i, i + chunkSize)
+
+    // Use Promise.allSettled to ensure one failure doesn't halt the entire chunk
+    await Promise.allSettled(
+      chunk.map(async (c) => {
         const payload = {
           name: c.name,
           cnpj: c.cnpj,
@@ -87,13 +88,25 @@ export const createClientsBatch = async (clients: Partial<Client>[]): Promise<vo
           lastPurchase: c.lastPurchase,
           deletedAt: c.deletedAt,
         }
+
         Object.keys(payload).forEach(
           (key) =>
             payload[key as keyof typeof payload] === undefined &&
             delete payload[key as keyof typeof payload],
         )
-        return pb.collection('clients').create(payload)
+
+        try {
+          return await pb.collection('clients').create(payload)
+        } catch (error) {
+          console.error(`Failed to create client ${c.name} in batch:`, error)
+          throw error
+        }
       }),
     )
+
+    // Add a controlled delay between batches to respect backend rate limits
+    if (i + chunkSize < clients.length) {
+      await new Promise((resolve) => setTimeout(resolve, 300))
+    }
   }
 }
